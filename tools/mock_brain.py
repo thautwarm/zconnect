@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""按规范实现一个假 brain，用来端到端验证 PP Friend 客户端。
+"""按规范实现一个假 brain，用来端到端验证 Zconnect 客户端。
 
   POST /human-to-brain   msgpack{brain_id, audio}   -> msgpack{kind:"text", text}
   POST /brain-to-human   msgpack{brain_id, skip_before?}
@@ -266,7 +266,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             # 真回复要不要算"发过了"，等确定不会 502 再推进。
-            text = "你好，我是 PP Friend 的测试语音。今天天气不错。"
+            text = "你好，我是 Zconnect 的测试语音。今天天气不错。"
 
         if FAILED:
             # 出声之前就失败：回 502，这条消息应当留在队列里。

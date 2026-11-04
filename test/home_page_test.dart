@@ -51,9 +51,6 @@ Future<void> _pumpHome(WidgetTester tester, ConversationController c) async {
 }
 
 /// 消息列表的滚动位置。
-///
-/// 不能直接 `find.byType(Scrollable)` —— 说话按钮那条档案带是个 [PageView]，
-/// 它自己也是个 Scrollable，会先被找到。
 ScrollPosition _listPosition(WidgetTester tester) => tester
     .state<ScrollableState>(
       find.descendant(
@@ -90,7 +87,7 @@ void main() {
     expect(find.text('开始之后，你和它说的话都会出现在这里'), findsOneWidget);
   });
 
-  testWidgets('点箭头切档案，整屏换成新档案的历史', (tester) async {
+  testWidgets('点档案入口展开网格，点卡片主体切档案', (tester) async {
     final store = MemoryMessageStore();
     await store.append('p_a', role: MessageRole.user, text: 'A 说的话');
     await store.append('p_b', role: MessageRole.user, text: 'B 说的话');
@@ -100,10 +97,21 @@ void main() {
     await _pumpHome(tester, controller);
     expect(find.text('A 说的话'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.tap(find.byKey(const ValueKey('fleet-open')));
+    await _settle(tester);
+    expect(
+      find.byKey(const ValueKey('profile-panel')),
+      findsOneWidget,
+      reason: '入口单击在同页展开网格，不是新路由',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('profile-card-p_b')));
+    await _settle(tester, 12);
+    expect(controller.config.focusedProfileId, 'p_b');
+
+    await tester.tap(find.byKey(const ValueKey('fleet-close')));
     await _settle(tester, 12);
 
-    expect(controller.config.focusedProfileId, 'p_b');
     expect(find.text('B 说的话'), findsOneWidget);
     expect(find.text('A 说的话'), findsNothing, reason: '一个档案一屏历史，不混在一起');
   });

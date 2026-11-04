@@ -1,13 +1,13 @@
-# PP Friend
+# Zconnect
 
 [English](README.md) · 中文 · [日本語](README.ja.md)
 
 自托管的实时语音助手客户端。手机端只做两件事——**采音、放音**；识别、对话、合成全部交给服务端（代码里叫 **brain**）。
 
-**PP 是 Push and Pull**：人和 agent 两边各自 push、各自 pull。手机把你的语音推给 brain，再长轮询取回它的回复；agent 把文本推进来，也把人的文本拉回去。四路通道一直开着，所以是异步协作——你还在说话，它也能开口。
+**Push and Pull**：人和 agent 两边各自 push、各自 pull。手机把你的语音推给 brain，再长轮询取回它的回复；agent 把文本推进来，也把人的文本拉回去。四路通道一直开着，所以是异步协作——你还在说话，它也能开口。
 
-> **Made with deepseek v4.1 flash and pp-friend itself.**
-> 这个项目的开发过程本身就用 PP Friend 在跑：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。
+> **Made with deepseek v4.1 flash and Zconnect itself.**
+> 这个项目的开发过程本身就用 Zconnect 在跑：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。
 
 ---
 
@@ -26,15 +26,15 @@
 
 项目主页（产品介绍、架构、隐私说明，支持中文 / English / 日本語）：
 
-**<https://thautwarm.github.io/pp-friend/>**
+**<https://thautwarm.github.io/zconnect/>**
 
 想自己写一个 brain，先看协议说明：
 
-**<https://thautwarm.github.io/pp-friend/brain-api/>**
+**<https://thautwarm.github.io/zconnect/brain-api/>**
 
 说话人识别需要一份本人的声纹。创建页：
 
-**<https://thautwarm.github.io/pp-friend/enroll/>**
+**<https://thautwarm.github.io/zconnect/enroll/>**
 
 在浏览器里录一段话，下载 `spkemb.f32`，再回到 App 的
 **设置 → 通用 → 说话人识别** 导入。录音和推理都在浏览器本地完成，

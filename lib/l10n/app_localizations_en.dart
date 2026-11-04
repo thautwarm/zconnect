@@ -697,11 +697,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get micSettingsPath =>
-      'System Settings → Privacy & Security → Microphone → enable pp_friend';
+      'System Settings → Privacy & Security → Microphone → enable Zconnect';
 
   @override
   String get localNetworkSettingsPath =>
-      'System Settings → Privacy & Security → Local Network → enable pp_friend';
+      'System Settings → Privacy & Security → Local Network → enable Zconnect';
 
   @override
   String get continueBlocked =>
@@ -712,4 +712,191 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get skipCurrentSpeechTooltip => 'Skip the line currently playing';
+
+  @override
+  String get profilesTitle => 'Profiles';
+
+  @override
+  String profilesOpenCount(int open, int total) {
+    return '$open/$total open';
+  }
+
+  @override
+  String get profilePanelClose => 'Back to chat';
+
+  @override
+  String get profileCurrent => 'Current';
+
+  @override
+  String get profileStatusClosed => 'Off';
+
+  @override
+  String get profileStatusUnconfigured => 'Brain not configured';
+
+  @override
+  String get profileStatusAuthFailed => 'Invalid token';
+
+  @override
+  String get profileStatusError => 'Connection failed';
+
+  @override
+  String get profileStatusListening => 'Listening';
+
+  @override
+  String get profileStatusOpenIdle => 'Open · Not started';
+
+  @override
+  String get profileStatusConnecting => 'Open · Connecting';
+
+  @override
+  String profileOpenAction(String name) {
+    return 'Open $name';
+  }
+
+  @override
+  String profileCloseAction(String name) {
+    return 'Close $name';
+  }
+
+  @override
+  String profileClosedTapHint(String name) {
+    return '$name is off. Use the small switch to open it.';
+  }
+
+  @override
+  String profileOpenedIdle(String name) {
+    return 'Opened $name. It will receive after the conversation starts.';
+  }
+
+  @override
+  String profileOpenedActive(String name) {
+    return 'Opened $name. Receiving now.';
+  }
+
+  @override
+  String profileClosedNotice(String name) {
+    return 'Closed $name. It is no longer receiving.';
+  }
+
+  @override
+  String profileClosedSwitched(String name, String next) {
+    return 'Closed $name. Switched to $next.';
+  }
+
+  @override
+  String profileAtCapacity(int max) {
+    return 'At most $max profiles can be open at once. Close one first.';
+  }
+
+  @override
+  String profileOverLimit(int open, int max) {
+    return '$open profiles are open, above the limit of $max. Close some.';
+  }
+
+  @override
+  String profileOpenFailed(String name) {
+    return 'Could not open $name';
+  }
+
+  @override
+  String profileCloseFailed(String name) {
+    return 'Could not close $name';
+  }
+
+  @override
+  String get profileGroupSection => 'Group';
+
+  @override
+  String get profileGroupLabel => 'Group';
+
+  @override
+  String get profileUngrouped => 'Ungrouped';
+
+  @override
+  String get profileUntitledGroup => 'Untitled group';
+
+  @override
+  String get profileNewGroup => 'New group';
+
+  @override
+  String get profileGroupNameLabel => 'Group name';
+
+  @override
+  String get profileGroupNameHint => 'e.g. Work';
+
+  @override
+  String get profileGroupCreate => 'Create';
+
+  @override
+  String get profileGroupRename => 'Rename';
+
+  @override
+  String get profileGroupDelete => 'Delete group';
+
+  @override
+  String get profileGroupMoveUp => 'Move up';
+
+  @override
+  String get profileGroupMoveDown => 'Move down';
+
+  @override
+  String profileGroupDeleted(String name) {
+    return 'Deleted group $name. Its profiles are now ungrouped.';
+  }
+
+  @override
+  String profileGroupCreated(String name) {
+    return 'Created group $name';
+  }
+
+  @override
+  String profileGroupRenamed(String name) {
+    return 'Renamed group to $name';
+  }
+
+  @override
+  String get profileGroupEmpty => 'No profiles in this group yet';
+
+  @override
+  String get profileAllGroups => 'All';
+
+  @override
+  String get profileSearchHint => 'Search profiles';
+
+  @override
+  String get profileSearchEmpty => 'No matching profiles';
+
+  @override
+  String get profileGroupMenuTooltip => 'Group actions';
+
+  @override
+  String get profileCardActions => 'Profile actions';
+
+  @override
+  String get profileCardEdit => 'Edit profile';
+
+  @override
+  String get profileCardMoveGroup => 'Move to group';
+
+  @override
+  String get profileMoveToGroupTitle => 'Move to group';
+
+  @override
+  String get profileMoveToGroupNew => 'New group…';
+
+  @override
+  String profileMovedToGroup(String name, String group) {
+    return 'Moved $name to $group';
+  }
+
+  @override
+  String profileMoveToGroupFailed(String name) {
+    return 'Could not move $name';
+  }
+
+  @override
+  String get profileDragHint => 'Long-press to reorder';
+
+  @override
+  String get profileGroupDragHint => 'Long-press a group title to reorder';
 }

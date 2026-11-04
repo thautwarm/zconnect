@@ -119,7 +119,7 @@ class BrainException implements Exception {
 /// 这个类只负责协议，不管并发、排队和重试 —— 那是调用方的事。
 class BrainClient {
   BrainClient({http.Client? client})
-    : _client = client ?? http.Client(),
+    : _injectedClient = client,
       _ownsClient = client == null;
 
   /// 这个 client 是不是我们自己造的。
@@ -129,7 +129,17 @@ class BrainClient {
   /// 同一个已经 close 的对象，后续每个请求都会报 Client is already closed。
   final bool _ownsClient;
 
-  http.Client _client;
+  /// 注入进来的 client。它永远不被我们 close。
+  final http.Client? _injectedClient;
+
+  /// 懒创建的底层 client。
+  ///
+  /// 一个档案一个 `BrainClient`，但档案可以有一两百个且大多数是关闭的。
+  /// 构造时立刻 `http.Client()` 会为每个档案建一份连接池/IO 资源，
+  /// 即使它从来没发过请求。所以真正第一次发请求时才创建。
+  http.Client? _client;
+
+  http.Client get _http => _client ??= _injectedClient ?? http.Client();
 
   /// 还没结束的 `/brain-to-human` 连接。abort() 要逐个取消。
   final Set<_ReplyConnection> _activeConnections = <_ReplyConnection>{};
@@ -245,7 +255,7 @@ class BrainClient {
       // 用 Completer 包一层：超时之后底层 send 的迟到错误不能变成
       // unhandled exception。
       final send = Completer<http.StreamedResponse>();
-      _client.send(request).then(send.complete).catchError((
+      _http.send(request).then(send.complete).catchError((
         Object error,
         StackTrace stack,
       ) {
@@ -298,7 +308,7 @@ class BrainClient {
 
     final http.Response response;
     try {
-      response = await _client
+      response = await _http
           .post(uri, headers: headers, body: payload)
           .timeout(timeout);
     } on TimeoutException {
@@ -477,11 +487,12 @@ class BrainClient {
 
     if (_ownsClient) {
       try {
-        _client.close();
+        _client?.close();
       } catch (_) {
         // 已经关了就算了
       }
-      _client = http.Client();
+      // 下次发请求时再懒创建一个新的。
+      _client = null;
     }
   }
 
@@ -491,7 +502,8 @@ class BrainClient {
     for (final conn in active) {
       unawaited(conn.cancel());
     }
-    if (_ownsClient) _client.close();
+    if (_ownsClient) _client?.close();
+    _client = null;
   }
 }
 

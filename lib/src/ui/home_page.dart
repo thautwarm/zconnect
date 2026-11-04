@@ -9,7 +9,8 @@ import '../conversation/conversation_controller.dart';
 import '../conversation/message.dart';
 import 'debug_page.dart';
 import 'settings_page.dart';
-import 'widgets/profile_swipe_band.dart';
+import 'widgets/profile_compact_bar.dart';
+import 'widgets/profile_grid_panel.dart';
 import 'widgets/voice_orb.dart';
 
 /// 主界面。
@@ -63,6 +64,9 @@ class _HomePageState extends State<HomePage> {
   /// `FileImage` 的话会一直new 对象。按路径缓存，换头像时路径会变
   /// （文件名带时间戳），自然就换了。
   final Map<String, ImageProvider> _avatars = {};
+
+  /// 是否正在看档案网格。它是 `HomePage` 的本地状态，不是路由/新页面。
+  bool _fleetExpanded = false;
 
   @override
   void initState() {
@@ -203,84 +207,150 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final l10n = AppLocalizations.of(context);
 
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final l10n = AppLocalizations.of(context);
-        _maybeAutoScroll(controller.lastSeq);
-        _syncFocusedProfile(controller.config.focusedProfileId);
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('PP Friend'),
-            centerTitle: false,
-            actions: [
-              IconButton(
-                tooltip: l10n.debugPanelTooltip,
-                icon: const Icon(Icons.tune_rounded),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => DebugPage(controller: controller),
-                  ),
-                ),
+    // **不要把它放进 AnimatedBuilder 的 builder 里。** 折叠栏自己订阅
+    // `fleetRevision`；放进 builder 会被 500ms 电平刷新和每条后台消息
+    // 跟着重建。
+    final compactBar = ProfileCompactBar(
+      controller: controller,
+      avatarOf: _avatarFor,
+      onOpen: () => setState(() => _fleetExpanded = true),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Zconnect'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: l10n.debugPanelTooltip,
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => DebugPage(controller: controller),
               ),
-              IconButton(
-                tooltip: l10n.brainConfigTooltip,
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => SettingsPage(controller: controller),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                ProfileSwipeBand(
-                  // 只放开着的档案。关掉的档案不轮询、不能聚焦，
-                  // 放进滑动带里就是几页怎么点都点不动的死页 ——
-                  // 那些在设置页里管。
-                  profiles: [
-                    for (final profile in controller.config.profiles)
-                      if (profile.enabled) profile,
-                  ],
-                  focusedId: controller.config.focusedProfileId,
-                  levels: controller.levelsNotifier,
-                  state: _state(),
-                  enabled: !controller.busy,
-                  scale: 0.62,
-                  onTap: controller.toggle,
-                  onFocus: controller.switchProfile,
-                  avatarOf: _avatarFor,
-                ),
-                const SizedBox(height: 4),
-                _toggles(context),
-                const SizedBox(height: 6),
-                _headline(context),
-                if (controller.brainError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      controller.brainError!,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                Expanded(child: _messageStreamWithJump(context)),
-              ],
             ),
           ),
-        );
-      },
+          IconButton(
+            tooltip: l10n.brainConfigTooltip,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SettingsPage(controller: controller),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: SafeArea(
+        child: _fleetExpanded
+            ? ProfileGridPanel(
+                controller: controller,
+                avatarOf: _avatarFor,
+                onClose: () => setState(() => _fleetExpanded = false),
+              )
+            : AnimatedBuilder(
+                animation: controller,
+                // 档案栏不依赖电平/消息，作为 child 传进去避免跟着重建。
+                child: compactBar,
+                builder: (context, compactBar) {
+                  _maybeAutoScroll(controller.lastSeq);
+                  _syncFocusedProfile(controller.config.focusedProfileId);
+                  final hasOpen =
+                      controller.config.focusedProfile?.enabled ?? false;
+
+                  return Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      compactBar!,
+                      if (hasOpen) ...[
+                        _focusedOrb(context),
+                        const SizedBox(height: 4),
+                        _toggles(context),
+                        const SizedBox(height: 6),
+                        _headline(context),
+                      ] else
+                        _emptyProfiles(context),
+                      if (controller.brainError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            controller.brainError!,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      Expanded(child: _messageStreamWithJump(context)),
+                    ],
+                  );
+                },
+              ),
+      ),
+    );
+  }
+
+  /// 折叠态的那个说话按钮。
+  ///
+  /// 以前它是 `ProfileSwipeBand` 里的中间那一页；现在只有聚焦档案一个，
+  /// 旁边的圆和箭头都收进了网格。
+  Widget _focusedOrb(BuildContext context) {
+    final controller = widget.controller;
+    final profile = controller.config.focusedProfile;
+    if (profile == null || !profile.enabled) return _emptyProfiles(context);
+
+    return VoiceOrb(
+      levels: controller.levelsNotifier,
+      state: _state(),
+      enabled: !controller.busy,
+      scale: 0.62,
+      accent: Color(profile.accentColor),
+      avatar: _avatarFor(profile),
+      onTap: controller.toggle,
+    );
+  }
+
+  /// 一个打开的档案都没有时的占位。屏幕不能空出一块，标题行也不能还写着
+  /// "点击开始对话" —— 根本没有可以开始的对象。
+  Widget _emptyProfiles(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      height: VoiceOrb.baseCanvasSize * 0.62,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.person_off_outlined,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.noEnabledProfiles,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l10n.noEnabledProfilesBody,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -403,8 +473,7 @@ class _HomePageState extends State<HomePage> {
   /// 最后一条消息被挡住一点的时候；贴在列表下面会永久吃掉一行空间。
   Widget _messageStreamWithJump(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final show =
-        _showJumpToBottom && widget.controller.messages.isNotEmpty;
+    final show = _showJumpToBottom && widget.controller.messages.isNotEmpty;
 
     return Stack(
       children: [

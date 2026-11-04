@@ -10,7 +10,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pp_friend/src/audio/segmenter.dart';
 import 'package:pp_friend/src/brain/brain_client.dart';
 import 'package:pp_friend/src/config/assistant_config.dart';
+import 'package:pp_friend/src/config/fleet_store.dart';
 import 'package:pp_friend/src/conversation/conversation_controller.dart';
+import 'package:pp_friend/src/conversation/message.dart';
+import 'package:pp_friend/src/conversation/profile_status.dart';
 import 'package:pp_friend/src/storage/memory_message_store.dart';
 import 'package:pp_friend/src/voice/voice_engine.dart';
 
@@ -71,6 +74,12 @@ class _FakeBrains {
   /// 这些 brain 的 /brain-to-human 一律回 401（token 不对）。
   final Set<String> unauthorized = {};
 
+  /// 没消息时回一条空响应（文本长度 0），而不是 503。
+  ///
+  /// 503 会让轮询进入错误状态；验证"后台消息不抬 fleetRevision"时，
+  /// 错误/恢复本身就会抬两次，干扰断言。空响应没有状态变化。
+  bool idleAsEmpty = false;
+
   /// 挂住上行请求不放，用它验"排队中切档案"。
   Completer<void>? uploadGate;
 
@@ -118,6 +127,16 @@ class _FakeBrains {
       }
       final queue = replies[brainId];
       if (queue == null || queue.isEmpty) {
+        if (idleAsEmpty) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          return http.StreamedResponse(
+            Stream<List<int>>.value(
+              speechBody('', skipped: false, ogg: const <int>[]),
+            ),
+            200,
+            headers: const {'content-type': 'application/octet-stream'},
+          );
+        }
         // 没话说。用 503 让轮询走退避分支，别空转。
         return http.StreamedResponse(const Stream<List<int>>.empty(), 503);
       }
@@ -177,21 +196,50 @@ Future<ConversationController> _boot(
   FakeSegmenter segmenter, {
   MemoryMessageStore? history,
   bool bargeIn = false,
+  AssistantConfig? config,
+  int maxOpenProfiles = 12,
+  bool start = true,
 }) async {
   final controller = ConversationController(
     engine: engine,
     brainFactory: brains.call,
     history: history ?? MemoryMessageStore(),
+    maxOpenProfiles: maxOpenProfiles,
     segmenterFactory:
         ({required int sampleRate, required AssistantConfig config}) async {
           segmenter.sampleRates.add(sampleRate);
           return segmenter;
         },
   );
-  await controller.updateConfig(_twoProfiles(bargeIn: bargeIn));
-  await controller.start();
+  await controller.updateConfig(config ?? _twoProfiles(bargeIn: bargeIn));
+  if (start) await controller.start();
   return controller;
 }
+
+/// 三个档案：A 聚焦、B 开着、C 关着。
+///
+/// 用于验证"关闭且从未运行过的档案不预建 runtime"以及打开上限。
+AssistantConfig _threeProfiles() => const AssistantConfig(
+  profiles: [
+    Profile(
+      id: 'p_a',
+      name: 'A',
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'a'),
+    ),
+    Profile(
+      id: 'p_b',
+      name: 'B',
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'b'),
+    ),
+    Profile(
+      id: 'p_c',
+      name: 'C',
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'c'),
+      enabled: false,
+    ),
+  ],
+  focusedProfileId: 'p_a',
+);
 
 /// 用户"说了一段够格的话"（打断要靠连续时长，一声咳嗽不算）。
 Future<void> _speak(
@@ -910,6 +958,417 @@ void main() {
       expect(
         controller.log.any((e) => e.message.contains('外部音频占用中，丢掉一段')),
         isTrue,
+      );
+    });
+  });
+
+  group('档案开关与上限', () {
+    test('关闭且从未运行过的档案不预建 runtime，打开后才建', () async {
+      final brains = _FakeBrains();
+      final controller = await _boot(
+        brains,
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      // A、B 开着，C 关着而且从未运行过。
+      expect(brains.factoryCalls, 2, reason: '关着的 C 不该白占一个 runtime');
+
+      final opened = await controller.setProfileEnabled('p_c', true);
+      expect(opened, SetProfileEnabledResult.opened);
+
+      await _waitUntil(
+        () => (brains.polls['c'] ?? 0) > 0,
+        reason: '打开之后 C 应该开始轮询',
+      );
+      expect(brains.factoryCalls, 3, reason: '打开时才建 C 的 runtime');
+    });
+
+    test('开关只改 enabled，不改焦点', () async {
+      final brains = _FakeBrains();
+      final controller = await _boot(
+        brains,
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.config.focusedProfileId, 'p_a');
+
+      final closed = await controller.setProfileEnabled('p_b', false);
+      expect(closed, SetProfileEnabledResult.closed);
+      expect(controller.config.focusedProfileId, 'p_a', reason: '关 B 不该切走焦点');
+      expect(
+        controller.config.profiles.firstWhere((p) => p.id == 'p_b').enabled,
+        isFalse,
+      );
+
+      final opened = await controller.setProfileEnabled('p_b', true);
+      expect(opened, SetProfileEnabledResult.opened);
+      expect(controller.config.focusedProfileId, 'p_a', reason: '开 B 也不该切走焦点');
+    });
+
+    test('重复开关返回 already，找不到返回 notFound', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      expect(
+        await controller.setProfileEnabled('p_a', true),
+        SetProfileEnabledResult.alreadyOpen,
+      );
+      expect(
+        await controller.setProfileEnabled('p_c', false),
+        SetProfileEnabledResult.alreadyClosed,
+      );
+      expect(
+        await controller.setProfileEnabled('p_missing', true),
+        SetProfileEnabledResult.notFound,
+      );
+    });
+
+    test('上限只拦打开；关掉一个之后可以再开', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+        maxOpenProfiles: 2,
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.openProfileCount, 2);
+      expect(
+        await controller.setProfileEnabled('p_c', true),
+        SetProfileEnabledResult.atCapacity,
+      );
+      expect(
+        controller.config.profiles.firstWhere((p) => p.id == 'p_c').enabled,
+        isFalse,
+        reason: '被上限拦下时不能偷偷打开',
+      );
+
+      await controller.setProfileEnabled('p_a', false);
+      expect(controller.openProfileCount, 1);
+      expect(
+        await controller.setProfileEnabled('p_c', true),
+        SetProfileEnabledResult.opened,
+      );
+      expect(controller.openProfileCount, 2);
+    });
+
+    test('旧配置超过上限时加载不静默关闭，只让用户自己收敛', () async {
+      const overCap = AssistantConfig(
+        profiles: [
+          Profile(
+            id: 'p_a',
+            name: 'A',
+            brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'a'),
+          ),
+          Profile(
+            id: 'p_b',
+            name: 'B',
+            brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'b'),
+          ),
+          Profile(
+            id: 'p_c',
+            name: 'C',
+            brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'c'),
+          ),
+        ],
+        focusedProfileId: 'p_a',
+      );
+
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: overCap,
+        maxOpenProfiles: 2,
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.openProfileCount, 3);
+      expect(
+        controller.config.profiles.every((p) => p.enabled),
+        isTrue,
+        reason: '加载时不能为了凑上限把用户打开的档案关掉',
+      );
+    });
+
+    test('关闭且没有 runtime 的档案，清历史仍然写到盘上', () async {
+      final history = MemoryMessageStore();
+      await history.append('p_c', role: MessageRole.user, text: '旧消息');
+
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+        history: history,
+      );
+      addTearDown(controller.dispose);
+
+      expect(await history.loadRecent('p_c'), isNotEmpty);
+      await controller.clearHistory('p_c');
+      expect(
+        await history.loadRecent('p_c'),
+        isEmpty,
+        reason: '懒建 runtime 不能让关闭档案的"清历史"静默失效',
+      );
+    });
+  });
+
+  group('分组', () {
+    test('创建、分配、改名、移动、删除', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      final work = await controller.createGroup('工作');
+      final home = await controller.createGroup('家庭');
+      expect(controller.profileGroups.map((g) => g.name), ['工作', '家庭']);
+
+      expect(await controller.assignProfileGroup('p_a', work.id), isTrue);
+      expect(controller.groupIdOf('p_a'), work.id);
+
+      await controller.renameGroup(work.id, '公司');
+      expect(
+        controller.profileGroups.firstWhere((g) => g.id == work.id).name,
+        '公司',
+      );
+
+      await controller.moveGroup(home.id, 0);
+      expect(controller.profileGroups.map((g) => g.id), [home.id, work.id]);
+
+      await controller.removeGroup(work.id);
+      expect(
+        controller.groupIdOf('p_a'),
+        isNull,
+        reason: '删组后成员回到未分组，不能跟着组一起消失',
+      );
+      expect(controller.profileGroups.any((g) => g.id == work.id), isFalse);
+    });
+
+    test('删除档案会清掉它的分组关系，空组保留', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      final group = await controller.createGroup('工作');
+      await controller.assignProfileGroup('p_a', group.id);
+      expect(controller.groupIdOf('p_a'), group.id);
+
+      await controller.removeProfile('p_a');
+
+      expect(controller.groupIdOf('p_a'), isNull);
+      expect(
+        controller.profileGroups.any((g) => g.id == group.id),
+        isTrue,
+        reason: '组是用户建的，档案删光了也保留空组',
+      );
+    });
+
+    test('不存在的组/档案不会假装成功', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.assignProfileGroup('p_a', 'g_missing'), isFalse);
+      expect(await controller.assignProfileGroup('p_missing', null), isFalse);
+      expect(
+        await controller.moveProfileToGroup('p_a', 'g_missing'),
+        isFalse,
+      );
+      expect(
+        await controller.moveProfileToGroup('p_missing', null),
+        isFalse,
+      );
+    });
+
+    test('拖拽落点：跨组移动并排到目标档案的位置', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      final work = await controller.createGroup('工作');
+      final home = await controller.createGroup('家庭');
+      await controller.assignProfileGroup('p_a', work.id);
+      await controller.assignProfileGroup('p_b', home.id);
+      expect(controller.groupIdOf('p_a'), work.id);
+
+      // 把 A 拖到 B 上：先换到"家庭"，再排到 B 的位置。
+      expect(
+        await controller.moveProfileToGroup(
+          'p_a',
+          home.id,
+          targetProfileId: 'p_b',
+        ),
+        isTrue,
+      );
+      expect(controller.groupIdOf('p_a'), home.id);
+      expect(controller.config.profiles.map((p) => p.id).toList(), [
+        'p_b',
+        'p_a',
+        'p_c',
+      ]);
+    });
+
+    test('分组存进独立 key 的模型，往返后成员关系还在', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      final group = await controller.createGroup('工作');
+      await controller.assignProfileGroup('p_b', group.id);
+
+      // 直接读 FleetStore：验证 controller 真的把它写进了 profile_fleet_v1，
+      // 而不是只改了内存。
+      final stored = await FleetStore().load();
+      expect(stored.groupIdOf('p_b'), group.id);
+      expect(stored.sortedGroups.single.name, '工作');
+    });
+  });
+
+  group('每档案状态', () {
+    test('聚焦 / 打开 / 关闭三种状态各归各位', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      await _waitUntil(
+        () => controller.profileStatuses.every(
+          (s) => !s.enabled || s.authFailed || s.polling,
+        ),
+        reason: '开着的档案应该都进入轮询',
+      );
+
+      final Map<String, ProfileStatus> statuses = {
+        for (final status in controller.profileStatuses)
+          status.profile.id: status,
+      };
+
+      expect(statuses['p_a']!.focused, isTrue);
+      expect(statuses['p_a']!.enabled, isTrue);
+      expect(statuses['p_a']!.listening, isTrue);
+      expect(statuses['p_b']!.focused, isFalse);
+      expect(statuses['p_b']!.enabled, isTrue);
+      expect(statuses['p_b']!.polling, isTrue);
+      expect(statuses['p_c']!.focused, isFalse);
+      expect(statuses['p_c']!.enabled, isFalse);
+      expect(statuses['p_c']!.polling, isFalse);
+      expect(statuses['p_c']!.listening, isFalse);
+    });
+
+    test('401 之后重新开始轮询会把 authFailed 复位', () async {
+      final brains = _FakeBrains()..unauthorized.add('a');
+      final controller = await _boot(
+        brains,
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      await _waitUntil(
+        () => controller.profileStatuses
+            .firstWhere((s) => s.profile.id == 'p_a')
+            .authFailed,
+        reason: '401 之后该记下鉴权失败',
+      );
+
+      brains.unauthorized.clear();
+      await controller.updateConfig(_threeProfiles());
+
+      await _waitUntil(
+        () => !controller.profileStatuses
+            .firstWhere((s) => s.profile.id == 'p_a')
+            .authFailed,
+        reason: 'token 改对、重新轮询之后，卡片不能还写着 token 无效',
+      );
+    });
+
+    test('开关和分组变化会抬 fleetRevision', () async {
+      final controller = await _boot(
+        _FakeBrains(),
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+      );
+      addTearDown(controller.dispose);
+
+      var bumps = 0;
+      controller.fleetRevision.addListener(() => bumps++);
+
+      final beforeSwitch = bumps;
+      await controller.setProfileEnabled('p_b', false);
+      expect(bumps, greaterThan(beforeSwitch));
+
+      final beforeGroup = bumps;
+      await controller.createGroup('工作');
+      expect(bumps, greaterThan(beforeGroup));
+    });
+
+    test('后台消息的 record 不会抬 fleetRevision', () async {
+      final history = MemoryMessageStore();
+      final brains = _FakeBrains()..idleAsEmpty = true;
+      final controller = await _boot(
+        brains,
+        FakeVoiceEngine(),
+        FakeSegmenter(),
+        config: _threeProfiles(),
+        history: history,
+      );
+      addTearDown(controller.dispose);
+      await _settle();
+
+      var bumps = 0;
+      controller.fleetRevision.addListener(() => bumps++);
+      final before = bumps;
+
+      brains.queue('b', text: '后台来的一条');
+      for (var i = 0; i < 50; i++) {
+        if ((await history.loadRecent('p_b')).isNotEmpty) break;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await _settle(1);
+      }
+      await _settle(20);
+
+      expect(bumps, before, reason: 'grid 不应该被后台消息的内容刷屏重建');
+      expect(
+        (await history.loadRecent('p_b')).map((m) => m.text),
+        contains('后台来的一条'),
       );
     });
   });

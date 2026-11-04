@@ -74,7 +74,7 @@ class _PpFriendAppState extends State<PpFriendApp> {
       value: _locale,
       child: Consumer<LocaleController>(
         builder: (context, locale, _) => MaterialApp(
-          title: 'PP Friend',
+          title: 'Zconnect',
           debugShowCheckedModeBanner: false,
           locale: locale.locale,
           supportedLocales: LocaleController.supported,

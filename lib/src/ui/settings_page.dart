@@ -23,9 +23,16 @@ import 'widgets/settings_widgets.dart';
 /// 那个 1.26MB 的 ONNX 断句器，而切换必须是立刻的。所以它是单独一个 tab，
 /// 而不是塞在档案编辑里。
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, required this.controller});
+  const SettingsPage({
+    super.key,
+    required this.controller,
+    this.initialProfileId,
+  });
 
   final ConversationController controller;
+
+  /// 从网格卡片的"编辑"进来时直接选中这个档案；为空就用当前聚焦的。
+  final String? initialProfileId;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -79,7 +86,7 @@ class _SettingsPageState extends State<SettingsPage>
     _pvadMinCosine = TextEditingController(
       text: config.pvadMinCosine.toString(),
     );
-    _selectedId = config.focusedProfileId;
+    _selectedId = widget.initialProfileId ?? config.focusedProfileId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
   }
 
@@ -147,6 +154,9 @@ class _SettingsPageState extends State<SettingsPage>
     try {
       written = await _editor.currentState?.commit() ?? true;
       await _saveVad();
+    } on ProfileAtCapacityException {
+      _toast(l10n.profileAtCapacity(widget.controller.maxOpenProfiles));
+      return;
     } catch (e) {
       _toast(l10n.saveFailed('$e'));
       return;
@@ -180,7 +190,7 @@ class _SettingsPageState extends State<SettingsPage>
   /// 创建页要在线跑 onnxruntime-web，只能开浏览器，不能内嵌。
   /// 直接落到 /enroll/，不然用户还得在主页上再点一次。
   static const _voiceprintPageUrl =
-      'https://thautwarm.github.io/pp-friend/enroll/';
+      'https://thautwarm.github.io/zconnect/enroll/';
 
   Future<void> _openVoiceprintPage() async {
     final l10n = _l10n;
@@ -226,6 +236,9 @@ class _SettingsPageState extends State<SettingsPage>
     // 先落盘再切。落不了就别切 —— 切过去会把这些改动无声无息地冲掉。
     try {
       await _editor.currentState?.commit();
+    } on ProfileAtCapacityException {
+      _toast(l10n.profileAtCapacity(widget.controller.maxOpenProfiles));
+      return;
     } catch (e) {
       _toast(l10n.saveFailedBeforeSwitch('$e'));
       return;
@@ -243,13 +256,31 @@ class _SettingsPageState extends State<SettingsPage>
     final l10n = _l10n;
     try {
       await _editor.currentState?.commit();
+    } on ProfileAtCapacityException {
+      _toast(l10n.profileAtCapacity(widget.controller.maxOpenProfiles));
+      return;
     } catch (e) {
       _toast(l10n.saveFailedBeforeAdd('$e'));
       return;
     }
-    final profile = Profile(id: Profile.newId(), name: l10n.newProfile);
-    await widget.controller.saveProfile(profile);
+    final canOpen =
+        widget.controller.openProfileCount < widget.controller.maxOpenProfiles;
+    final profile = Profile(
+      id: Profile.newId(),
+      name: l10n.newProfile,
+      // 到上限时新建的档案先关着，不让"新建"绕过上限。
+      enabled: canOpen,
+    );
+    try {
+      await widget.controller.saveProfile(profile);
+    } on ProfileAtCapacityException {
+      _toast(l10n.profileAtCapacity(widget.controller.maxOpenProfiles));
+      return;
+    }
     if (!mounted) return;
+    if (!canOpen) {
+      _toast(l10n.profileAtCapacity(widget.controller.maxOpenProfiles));
+    }
     // 新建的那个在列表末尾，往往在屏幕外面 —— 不滚过去的话，编辑器
     // 已经切到"新档案"了，上面那排 chip 里却看不出选中了谁。
     setState(() => _selectedId = profile.id);

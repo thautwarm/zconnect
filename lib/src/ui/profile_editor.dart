@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../l10n/app_localizations.dart';
 import '../config/assistant_config.dart';
 import '../conversation/conversation_controller.dart';
+import 'widgets/group_name_dialog.dart';
 import 'widgets/settings_widgets.dart';
 
 /// 一个档案的全部设置。
@@ -41,6 +42,14 @@ class ProfileEditorState extends State<ProfileEditor> {
 
   late int _accent;
   late bool _enabled;
+
+  /// 正在编辑的档案所属分组。null = 未分组。
+  ///
+  /// 它和名字/brain 一样是**待保存状态**，由 [commit] 写入分组存储。
+  String? _groupId;
+
+  /// 下拉框里代表"未分组"的哨兵值。组 id 是 `g_` 开头，不会撞。
+  static const String _ungroupedGroup = '__ungrouped__';
 
   /// 新挑的头像的**临时路径**。保存时才拷进应用目录 —— 取消了直接丢掉，
   /// 不会在应用目录里留一份没人引用的图。
@@ -101,6 +110,7 @@ class ProfileEditorState extends State<ProfileEditor> {
     _token.text = profile.brain.token;
     _accent = profile.accentColor;
     _enabled = profile.enabled;
+    _groupId = widget.controller.groupIdOf(profile.id);
     _pickedAvatar = null;
     _clearAvatar = false;
     _historyBytes = 0;
@@ -162,6 +172,15 @@ class ProfileEditorState extends State<ProfileEditor> {
         ),
       );
 
+      // 分组存在独立 key 里，走 controller 的分组接口；组如果已经被删了，
+      // 就当未分组写回，不能留一个悬空 id。
+      final groups = widget.controller.profileGroups;
+      final groupId = groups.any((group) => group.id == _groupId)
+          ? _groupId
+          : null;
+      await widget.controller.assignProfileGroup(widget.profile.id, groupId);
+      _groupId = groupId;
+
       final picked = _pickedAvatar;
       if (picked != null) {
         await widget.controller.setAvatar(widget.profile.id, picked);
@@ -170,6 +189,11 @@ class ProfileEditorState extends State<ProfileEditor> {
       }
       _pickedAvatar = null;
       _clearAvatar = false;
+    } on ProfileAtCapacityException {
+      // 没写进去，界面上的开关也要退回去 —— 否则用户会看到一个"开着"、
+      // 实际没有落盘的档案。
+      if (mounted) setState(() => _enabled = current.enabled);
+      rethrow;
     } finally {
       _busy = false;
     }
@@ -280,6 +304,20 @@ class ProfileEditorState extends State<ProfileEditor> {
     // 删完由父级换到别的 tab，这里不自作主张 pop
   }
 
+  Future<void> _createGroupAndSelect() async {
+    final l10n = _l10n;
+    final name = await showGroupNameDialog(
+      context,
+      title: l10n.profileNewGroup,
+      confirmLabel: l10n.profileGroupCreate,
+    );
+    if (name == null || !mounted) return;
+    final group = await widget.controller.createGroup(name);
+    if (!mounted) return;
+    setState(() => _groupId = group.id);
+    _toast(l10n.profileGroupCreated(name));
+  }
+
   // ------------------------------------------------------------ 界面
 
   @override
@@ -334,6 +372,8 @@ class ProfileEditorState extends State<ProfileEditor> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        _groupSection(theme, l10n),
         const SizedBox(height: 16),
         SettingsSection(
           title: l10n.statusSection,
@@ -408,6 +448,62 @@ class ProfileEditorState extends State<ProfileEditor> {
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _groupSection(ThemeData theme, AppLocalizations l10n) {
+    final groups = widget.controller.profileGroups;
+    final selected = groups.any((group) => group.id == _groupId)
+        ? _groupId!
+        : _ungroupedGroup;
+
+    return SettingsSection(
+      title: l10n.profileGroupSection,
+      children: [
+        Text(
+          l10n.profileGroupLabel,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        DropdownButton<String>(
+          key: const ValueKey('profile-group-dropdown'),
+          value: selected,
+          isExpanded: true,
+          items: [
+            DropdownMenuItem(
+              value: _ungroupedGroup,
+              child: Text(l10n.profileUngrouped),
+            ),
+            for (final group in groups)
+              DropdownMenuItem(
+                value: group.id,
+                child: Text(
+                  group.name.trim().isEmpty
+                      ? l10n.profileUntitledGroup
+                      : group.name,
+                ),
+              ),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() {
+              _groupId = value == _ungroupedGroup ? null : value;
+            });
+          },
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: const ValueKey('profile-group-new'),
+            onPressed: _createGroupAndSelect,
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(l10n.profileNewGroup),
           ),
         ),
       ],

@@ -39,6 +39,7 @@ class ProfileRuntime {
     required this.isActive,
     required this.isFocused,
     required this.onReply,
+    this.onStatusChanged,
     this.messageLimit = 300,
   });
 
@@ -58,6 +59,13 @@ class ProfileRuntime {
 
   final VoidCallback onChanged;
   final void Function(String message) onLog;
+
+  /// 只在这个档案的**运行状态**变化时回调（轮询开关、错误、鉴权失败）。
+  ///
+  /// 和 [onChanged] 分开是有原因的：`onChanged` 每条消息都会触发，
+  /// 用它驱动档案网格会让 200 张卡片在每条后台消息到达时重建。网格只关心
+  /// "这个档案现在开着没有/在不在收/有没有出错"，不关心消息内容。
+  final VoidCallback? onStatusChanged;
 
   /// 会话是否开着（controller 的 `_active`）。
   final bool Function() isActive;
@@ -101,9 +109,28 @@ class ProfileRuntime {
   /// 从历史里拽回底部）。
   int get lastSeq => _messages.isEmpty ? 0 : _messages.last.seq;
 
-  bool polling = false;
+  /// 这条轮询循环是否活着。写入时自动通知状态监听。
+  bool get polling => _polling;
+  bool _polling = false;
+  set polling(bool value) {
+    if (_polling == value) return;
+    _polling = value;
+    onStatusChanged?.call();
+  }
+
   String? error;
-  bool authFailed = false;
+
+  /// 最近一次轮询是否因为 401/403 停下。
+  ///
+  /// **重新打开/重新开始轮询时必须复位**，否则用户把 token 改对之后，
+  /// 卡片会一直显示"token 无效"，而实际请求已经能成功了。
+  bool get authFailed => _authFailed;
+  bool _authFailed = false;
+  set authFailed(bool value) {
+    if (_authFailed == value) return;
+    _authFailed = value;
+    onStatusChanged?.call();
+  }
 
   bool _running = false;
 
@@ -294,6 +321,9 @@ class ProfileRuntime {
   void startPolling() {
     if (_running) return;
     _running = true;
+    // 上一轮可能是 401 停下的；重新开始就是一次新的机会，别让旧状态
+    // 一直挂在卡片上。
+    authFailed = false;
     _skippedAudio = 0;
     _truncatedStreak = 0;
     // **不设 skip_before。** 停着的时候服务端压下来的消息必须原样送上来：
@@ -512,6 +542,7 @@ class ProfileRuntime {
   void setError(String? message) {
     if (error == message) return;
     error = message;
+    onStatusChanged?.call();
     onChanged();
   }
 }

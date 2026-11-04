@@ -2,7 +2,7 @@
 
 只让本人的声音进入上行。Silero VAD 负责切句，ECAPA 声纹负责判断
 "这一段是不是本人"。创建入口是 `tools/voiceprint/enroll/` 网页，
-线上地址是 <https://thautwarm.github.io/pp-friend/enroll/>。
+线上地址是 <https://thautwarm.github.io/zconnect/enroll/>。
 
 ## 判定链路
 

@@ -675,11 +675,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get micSettingsPath =>
-      'システム設定 → プライバシーとセキュリティ → マイク → pp_friend を有効にする';
+      'システム設定 → プライバシーとセキュリティ → マイク → Zconnect を有効にする';
 
   @override
   String get localNetworkSettingsPath =>
-      'システム設定 → プライバシーとセキュリティ → ローカルネットワーク → pp_friend を有効にする';
+      'システム設定 → プライバシーとセキュリティ → ローカルネットワーク → Zconnect を有効にする';
 
   @override
   String get continueBlocked => 'マイク、brain アドレス、ローカルネットワークの確認がすべて通ると続行できます';
@@ -689,4 +689,191 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get skipCurrentSpeechTooltip => '再生中のこの文をスキップ';
+
+  @override
+  String get profilesTitle => 'プロフィール';
+
+  @override
+  String profilesOpenCount(int open, int total) {
+    return '$open/$total オープン';
+  }
+
+  @override
+  String get profilePanelClose => '会話に戻る';
+
+  @override
+  String get profileCurrent => '現在';
+
+  @override
+  String get profileStatusClosed => 'オフ';
+
+  @override
+  String get profileStatusUnconfigured => 'brain 未設定';
+
+  @override
+  String get profileStatusAuthFailed => 'token 無効';
+
+  @override
+  String get profileStatusError => '接続失敗';
+
+  @override
+  String get profileStatusListening => '受信中';
+
+  @override
+  String get profileStatusOpenIdle => 'オープン · 未開始';
+
+  @override
+  String get profileStatusConnecting => 'オープン · 接続中';
+
+  @override
+  String profileOpenAction(String name) {
+    return '$name を開く';
+  }
+
+  @override
+  String profileCloseAction(String name) {
+    return '$name を閉じる';
+  }
+
+  @override
+  String profileClosedTapHint(String name) {
+    return '$name はオフです。右上のスイッチで開いてください';
+  }
+
+  @override
+  String profileOpenedIdle(String name) {
+    return '$name を開きました。会話を開始すると受信します';
+  }
+
+  @override
+  String profileOpenedActive(String name) {
+    return '$name を開きました。受信中です';
+  }
+
+  @override
+  String profileClosedNotice(String name) {
+    return '$name を閉じました。受信を停止しました';
+  }
+
+  @override
+  String profileClosedSwitched(String name, String next) {
+    return '$name を閉じ、$next に切り替えました';
+  }
+
+  @override
+  String profileAtCapacity(int max) {
+    return '同時に開けるのは $max 個までです。先に一つ閉じてください';
+  }
+
+  @override
+  String profileOverLimit(int open, int max) {
+    return '$open 個がオープンで、上限 $max 個を超えています。いくつか閉じてください';
+  }
+
+  @override
+  String profileOpenFailed(String name) {
+    return '$name を開けませんでした';
+  }
+
+  @override
+  String profileCloseFailed(String name) {
+    return '$name を閉じられませんでした';
+  }
+
+  @override
+  String get profileGroupSection => 'グループ';
+
+  @override
+  String get profileGroupLabel => '所属グループ';
+
+  @override
+  String get profileUngrouped => '未分類';
+
+  @override
+  String get profileUntitledGroup => '無名のグループ';
+
+  @override
+  String get profileNewGroup => '新しいグループ';
+
+  @override
+  String get profileGroupNameLabel => 'グループ名';
+
+  @override
+  String get profileGroupNameHint => '例：仕事';
+
+  @override
+  String get profileGroupCreate => '作成';
+
+  @override
+  String get profileGroupRename => '名前を変更';
+
+  @override
+  String get profileGroupDelete => 'グループを削除';
+
+  @override
+  String get profileGroupMoveUp => '上へ';
+
+  @override
+  String get profileGroupMoveDown => '下へ';
+
+  @override
+  String profileGroupDeleted(String name) {
+    return 'グループ $name を削除しました。メンバーは未分類に戻ります';
+  }
+
+  @override
+  String profileGroupCreated(String name) {
+    return 'グループ $name を作成しました';
+  }
+
+  @override
+  String profileGroupRenamed(String name) {
+    return 'グループ名を $name に変更しました';
+  }
+
+  @override
+  String get profileGroupEmpty => 'このグループにはまだプロフィールがありません';
+
+  @override
+  String get profileAllGroups => 'すべて';
+
+  @override
+  String get profileSearchHint => 'プロフィールを検索';
+
+  @override
+  String get profileSearchEmpty => '一致するプロフィールがありません';
+
+  @override
+  String get profileGroupMenuTooltip => 'グループ操作';
+
+  @override
+  String get profileCardActions => 'プロフィール操作';
+
+  @override
+  String get profileCardEdit => 'プロフィールを編集';
+
+  @override
+  String get profileCardMoveGroup => 'グループへ移動';
+
+  @override
+  String get profileMoveToGroupTitle => 'グループへ移動';
+
+  @override
+  String get profileMoveToGroupNew => '新しいグループ…';
+
+  @override
+  String profileMovedToGroup(String name, String group) {
+    return '$name を $group へ移動しました';
+  }
+
+  @override
+  String profileMoveToGroupFailed(String name) {
+    return '$name を移動できませんでした';
+  }
+
+  @override
+  String get profileDragHint => '長押しで並べ替え';
+
+  @override
+  String get profileGroupDragHint => 'グループ名を長押しして並べ替え';
 }

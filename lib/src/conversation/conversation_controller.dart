@@ -11,6 +11,8 @@ import '../brain/brain_client.dart';
 import '../brain/voice_directives.dart';
 import '../config/assistant_config.dart';
 import '../config/config_store.dart';
+import '../config/fleet_store.dart';
+import '../config/profile_group.dart';
 import '../storage/app_dirs.dart';
 import '../storage/avatar_store.dart';
 import '../storage/file_message_store.dart';
@@ -20,6 +22,7 @@ import '../storage/voiceprint_store.dart';
 import '../voice/voice_engine.dart';
 import 'message.dart';
 import 'profile_runtime.dart';
+import 'profile_status.dart';
 import 'utterance_queue.dart';
 
 /// 已经收到、可能还没播完的一条回复。
@@ -110,10 +113,39 @@ typedef SegmenterFactory = Future<Segmenter> Function({
   required AssistantConfig config,
 });
 
+/// 打开/关闭一个档案的结果。
+///
+/// 打开 = 开始常驻轮询（会话已开始时立刻开始收消息）；关闭 = 停止轮询。
+/// 界面靠这个返回值决定提示文案，不要把"已打开"和"打开失败"混在一起。
+enum SetProfileEnabledResult {
+  opened,
+  closed,
+  alreadyOpen,
+  alreadyClosed,
+  atCapacity,
+  notFound,
+}
+
+/// 在"打开档案"这一步超过同时打开上限时抛出。
+///
+/// `saveProfile` 是所有写档案配置路径的收口；把上限放在这里，设置页的
+/// enabled 开关、新建档案等路径就不会绕过网格卡片上的检查。
+class ProfileAtCapacityException implements Exception {
+  ProfileAtCapacityException(this.maxOpenProfiles);
+
+  final int maxOpenProfiles;
+
+  @override
+  String toString() =>
+      'ProfileAtCapacityException(maxOpenProfiles: $maxOpenProfiles)';
+}
+
 class ConversationController extends ChangeNotifier {
   ConversationController({
     VoiceEngine? engine,
     ConfigStore? store,
+    FleetStore? fleetStore,
+    this.maxOpenProfiles = 12,
     BrainClient? brain,
     BrainClient Function()? brainFactory,
     MessageStore? history,
@@ -122,6 +154,7 @@ class ConversationController extends ChangeNotifier {
     SegmenterFactory? segmenterFactory,
   }) : _engine = engine ?? VoiceEngine.instance,
        _store = store ?? ConfigStore(),
+       _fleetStore = fleetStore ?? FleetStore(),
        _brainFactory =
            brainFactory ?? (brain == null ? BrainClient.new : () => brain),
        _injectedHistory = history,
@@ -136,6 +169,30 @@ class ConversationController extends ChangeNotifier {
 
   final VoiceEngine _engine;
   final ConfigStore _store;
+
+  /// 分组单独存一个 key，见 [FleetStore]。
+  final FleetStore _fleetStore;
+
+  /// 同时打开的档案上限。
+  ///
+  /// 打开就是常驻轮询，每个打开的档案一条 `/brain-to-human` 长连接。
+  /// 上限只在"打开"动作上执行；旧配置已经超过上限时不会静默关掉任何档案，
+  /// 只由界面提示用户自己收敛。
+  final int maxOpenProfiles;
+
+  ProfileFleet _fleet = ProfileFleet.empty;
+
+  /// 档案网格专用的变更通知。
+  ///
+  /// 它和 `ChangeNotifier` 分开，是为了不让 500ms 的电平刷新、每条后台
+  /// 消息都重建整个网格。只有配置、分组、打开状态、运行状态变化时才抬。
+  final ValueNotifier<int> _fleetRevision = ValueNotifier<int>(0);
+  ValueListenable<int> get fleetRevision => _fleetRevision;
+
+  void _bumpFleet() {
+    if (_disposed) return;
+    _fleetRevision.value++;
+  }
 
   /// 造一个 brain 客户端。**每个档案要各自的实例**。
   ///
@@ -221,10 +278,15 @@ class ConversationController extends ChangeNotifier {
 
   Future<void> loadConfig() async {
     _config = (await _store.load()).normalized();
+    // 分组单独一个 key；读失败/没有就是空分组，不能拖垮配置加载。
+    _fleet = (await _fleetStore.load()).normalized(
+      profileIds: _config.profiles.map((profile) => profile.id).toSet(),
+    );
     // 先把配置交给界面：下面读历史、查声纹可能要几百毫秒，全等完再通知的
     // 话，主界面会一直停在"没有启用的档案"，用户这时候点设置还可能看到
     // 空列表（旧版本甚至会因为空列表下标越界而整页空白）。
     _safeNotify();
+    _bumpFleet();
     await _syncRuntimes();
     await refreshVoiceprint();
     // 先把聚焦档案的历史读出来，这样一打开 App 就看得见上次聊到哪儿了，
@@ -254,6 +316,12 @@ class ConversationController extends ChangeNotifier {
         next.pvadMinTargetRatio != _config.pvadMinTargetRatio;
 
     _config = next;
+    // 档案可能被删了：把指向不存在档案/组的成员关系清掉。
+    // 分组本身（包括空组）保留。
+    _fleet = _fleet.normalized(
+      profileIds: next.profiles.map((profile) => profile.id).toSet(),
+    );
+    _bumpFleet();
     if (pvadChanged) {
       // 门控是挂在活着的断句器上的，改完立刻重挂 —— 不用重开对话。
       await _applySpeakerGate();
@@ -271,6 +339,18 @@ class ConversationController extends ChangeNotifier {
     }
     notifyListeners();
     await _store.save(_config);
+    // 分组的成员关系可能因为删档案而变化；写一次让它和配置对齐。
+    // 失败只记日志，不影响已经保存的 brain 配置。
+    await _saveFleet();
+  }
+
+  /// 保存分组配置。失败不抛 —— 分组是附加信息，不能拖垮配置保存。
+  Future<void> _saveFleet() async {
+    try {
+      await _fleetStore.save(_fleet);
+    } catch (e) {
+      _safeLog('⚠️ 分组没能保存：$e');
+    }
   }
 
   /// 拿历史存储。拿不到应用目录就退化成内存版，并且**记下来**。
@@ -415,12 +495,19 @@ class ConversationController extends ChangeNotifier {
     for (final entry in wanted.entries) {
       final existing = _runtimes[entry.key];
       if (existing == null) {
+        // **关闭且从未打开过的档案不建运行态。** 200 个存储档案里可能只有
+        // 十来个开着；给每个都建 runtime + BrainClient 是纯浪费。
+        //
+        // 已经建过的（打开过再关掉）保留下来：里面还有"没听到"的账和
+        // 内存历史，关掉不该把它们清掉，下次打开时还接着用。
+        if (!entry.value.enabled) continue;
         _runtimes[entry.key] = ProfileRuntime(
           profile: entry.value,
           brain: _brainFactory(),
           store: history,
           onChanged: _safeNotify,
           onLog: _safeLog,
+          onStatusChanged: _bumpFleet,
           isActive: () => _active,
           // 现读，不缓存：焦点随时可能被换掉（滑动、关闭档案、删档案）
           isFocused: () => _config.focusedProfileId == entry.key,
@@ -431,6 +518,7 @@ class ConversationController extends ChangeNotifier {
       }
     }
 
+    _bumpFleet();
     await _syncPolling();
   }
 
@@ -518,6 +606,43 @@ class ConversationController extends ChangeNotifier {
 
   ProfileRuntime? get focused => _runtimes[_config.focusedProfileId];
 
+  /// 当前分组，按 order 排好。
+  List<ProfileGroup> get profileGroups =>
+      List<ProfileGroup>.unmodifiable(_fleet.sortedGroups);
+
+  /// 某个档案所在组的 id。未分组返回 null。
+  String? groupIdOf(String profileId) => _fleet.groupIdOf(profileId);
+
+  /// 当前打开了多少个档案（= `enabled` 的数量）。
+  ///
+  /// 它可能超过 [maxOpenProfiles]：旧配置不会在加载时被静默修改。
+  int get openProfileCount =>
+      _config.profiles.where((profile) => profile.enabled).length;
+
+  /// 对话会话是否已经开始。界面用它区分"已打开·待开始"和"监听中"。
+  bool get sessionActive => _active;
+
+  /// 每个档案的网格状态快照。
+  ///
+  /// 只读推导结果，不落盘。网格在 [fleetRevision] 变化时取一次，
+  /// 不要放在每帧 build 里反复调用。
+  List<ProfileStatus> get profileStatuses {
+    final focusedId = _config.focusedProfileId;
+    return [
+      for (final profile in _config.profiles)
+        ProfileStatus(
+          profile: profile,
+          // 关闭优先于聚焦：和 `Profile.stateIn` 的语义保持一致。
+          focused: profile.enabled && profile.id == focusedId,
+          enabled: profile.enabled,
+          sessionActive: _active,
+          polling: _runtimes[profile.id]?.polling ?? false,
+          authFailed: _runtimes[profile.id]?.authFailed ?? false,
+          error: _runtimes[profile.id]?.error,
+        ),
+    ];
+  }
+
   /// 聚焦档案的消息流。
   List<ConversationMessage> get messages =>
       focused?.messages ?? const <ConversationMessage>[];
@@ -596,6 +721,7 @@ class ConversationController extends ChangeNotifier {
     if (_config.focusedProfileId != from) return; // 焦点已经被别人改掉了
 
     _config = _config.copyWith(focusedProfileId: id);
+    _bumpFleet();
     notifyListeners();
 
     // 换一整屏历史。后台那段时间攒的消息没有进内存窗口，所以要重新读盘。
@@ -609,14 +735,143 @@ class ConversationController extends ChangeNotifier {
   ///
   /// 改配置一律走 `updateConfig`，让 [_syncRuntimes] 收口 —— 不这样
   /// 的话，每个改配置的地方都得自己记得同步运行态。
-  Future<void> saveProfile(Profile profile) =>
-      updateConfig(_config.withProfile(profile));
+  Future<void> saveProfile(Profile profile) async {
+    final current = _profileById(profile.id);
+    // 从关闭变打开（或新建一个默认打开的档案）要走同一道上限。
+    // 只拦"打开"：关闭永远允许，旧配置已经超限时用户仍能往下关。
+    final enabling = profile.enabled && (current == null || !current.enabled);
+    if (enabling && openProfileCount >= maxOpenProfiles) {
+      throw ProfileAtCapacityException(maxOpenProfiles);
+    }
+    await updateConfig(_config.withProfile(profile));
+  }
 
-  /// 调整档案顺序。焦点不变，只影响滑动带上的左右位置。
+  /// 调整档案顺序。焦点不变，只影响主界面的左右位置。
   Future<void> moveProfile(int from, int to) async {
     final next = _config.withProfileMoved(from, to);
     if (identical(next, _config)) return;
     await updateConfig(next);
+  }
+
+  /// 把档案移到某个分组；[targetProfileId] 非空时同时把它排到目标档案
+  /// 的位置。拖拽卡片走这里：同组内只是重排，跨组时先改 membership 再排。
+  Future<bool> moveProfileToGroup(
+    String profileId,
+    String? groupId, {
+    String? targetProfileId,
+  }) async {
+    if (_profileById(profileId) == null) return false;
+    if (groupId != null &&
+        !_fleet.groups.any((group) => group.id == groupId)) {
+      return false;
+    }
+
+    if (_fleet.groupIdOf(profileId) != groupId) {
+      final ok = await assignProfileGroup(profileId, groupId);
+      if (!ok) return false;
+    }
+
+    if (targetProfileId != null && targetProfileId != profileId) {
+      final from = _config.profiles.indexWhere((p) => p.id == profileId);
+      final to = _config.profiles.indexWhere((p) => p.id == targetProfileId);
+      if (from >= 0 && to >= 0 && from != to) {
+        await moveProfile(from, to);
+      }
+    }
+    return true;
+  }
+
+  /// 打开/关闭一个档案。
+  ///
+  /// **打开 = 开始常驻/后台收消息，关闭 = 停止轮询并停止收消息。**
+  /// 这个动作只改 `enabled`，不碰焦点 —— 打开一个档案不等于切过去。
+  /// 关闭的如果是当前聚焦档案，`updateConfig` 里的 `normalized()` 会按
+  /// 现有规则把焦点挪到下一个开着的档案。
+  Future<SetProfileEnabledResult> setProfileEnabled(
+    String id,
+    bool enabled,
+  ) async {
+    final profile = _profileById(id);
+    if (profile == null) return SetProfileEnabledResult.notFound;
+    if (profile.enabled == enabled) {
+      return enabled
+          ? SetProfileEnabledResult.alreadyOpen
+          : SetProfileEnabledResult.alreadyClosed;
+    }
+    // 上限只拦"打开"。关闭永远允许；旧配置已经超限时，用户仍能往下关。
+    if (enabled && openProfileCount >= maxOpenProfiles) {
+      return SetProfileEnabledResult.atCapacity;
+    }
+    try {
+      await saveProfile(profile.copyWith(enabled: enabled));
+    } on ProfileAtCapacityException {
+      // 两个打开动作撞在一起时，saveProfile 的收口检查会兜住后一个。
+      return SetProfileEnabledResult.atCapacity;
+    }
+    return enabled
+        ? SetProfileEnabledResult.opened
+        : SetProfileEnabledResult.closed;
+  }
+
+  // ---------------------------------------------------------------- 分组
+
+  /// 新建一个空分组。返回新组，调用方可以立刻把档案放进去。
+  Future<ProfileGroup> createGroup(String name) async {
+    // 用现有最大 order + 1，而不是组数：删过组之后 order 可能有空洞，
+    // 直接取 length 会造出重复 order。
+    var nextOrder = 0;
+    for (final group in _fleet.groups) {
+      if (group.order >= nextOrder) nextOrder = group.order + 1;
+    }
+    final group = ProfileGroup(
+      id: ProfileGroup.newId(),
+      name: name.trim(),
+      order: nextOrder,
+    );
+    _fleet = _fleet.copyWith(groups: [..._fleet.groups, group]);
+    await _saveFleet();
+    _bumpFleet();
+    return group;
+  }
+
+  /// 给组改名。组不存在时什么也不做。
+  Future<void> renameGroup(String groupId, String name) async {
+    if (!_fleet.groups.any((group) => group.id == groupId)) return;
+    _fleet = _fleet.renameGroup(groupId, name.trim());
+    await _saveFleet();
+    _bumpFleet();
+  }
+
+  /// 把组挪到 [newOrder]（最终下标）。组不存在或位置没变时是空操作。
+  Future<void> moveGroup(String groupId, int newOrder) async {
+    final next = _fleet.moveGroup(groupId, newOrder);
+    if (identical(next, _fleet)) return;
+    _fleet = next;
+    await _saveFleet();
+    _bumpFleet();
+  }
+
+  /// 删掉一个分组。成员回到"未分组"，不会被一起删掉。
+  Future<void> removeGroup(String groupId) async {
+    if (!_fleet.groups.any((group) => group.id == groupId)) return;
+    _fleet = _fleet.removeGroup(groupId);
+    await _saveFleet();
+    _bumpFleet();
+  }
+
+  /// 把档案放进 [groupId]；传 null 表示移出分组。
+  ///
+  /// 返回 false 表示档案或组不存在，调用方应提示而不是假装成功。
+  Future<bool> assignProfileGroup(String profileId, String? groupId) async {
+    if (_profileById(profileId) == null) return false;
+    if (groupId != null && !_fleet.groups.any((group) => group.id == groupId)) {
+      return false;
+    }
+    if (_fleet.groupIdOf(profileId) == groupId) return true;
+    _fleet = _fleet.assign(profileId, groupId);
+    await _saveFleet();
+    _bumpFleet();
+    return true;
   }
 
   /// 删掉一个档案。
@@ -681,8 +936,20 @@ class ConversationController extends ChangeNotifier {
   }
 
   /// 清掉某个档案的全部历史（盘上和内存一起）。
+  ///
+  /// 未打开且从未运行过的档案没有 runtime（见 [_syncRuntimes] 的懒创建），
+  /// 这时必须直接走存储层，否则设置页对关闭档案按"清空历史"会静默无效。
   Future<void> clearHistory(String id) async {
-    await _runtimes[id]?.clearHistory();
+    final runtime = _runtimes[id];
+    if (runtime != null) {
+      await runtime.clearHistory();
+      return;
+    }
+    try {
+      await (await _ensureHistory()).clear(id);
+    } catch (e) {
+      _safeLog('⚠️ 清历史失败：$e');
+    }
   }
 
   /// 这个档案的历史占多少字节。0 表示没有历史或者读不到。
@@ -2211,6 +2478,7 @@ class ConversationController extends ChangeNotifier {
     _segmenter?.dispose();
     _cancelAudioSubscriptions();
     levelsNotifier.dispose();
+    _fleetRevision.dispose();
     for (final runtime in _runtimes.values) {
       unawaited(runtime.dispose());
     }

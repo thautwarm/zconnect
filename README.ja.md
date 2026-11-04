@@ -1,13 +1,13 @@
-# PP Friend
+# Zconnect
 
 [English](README.md) · [中文](README.zh.md) · 日本語
 
 セルフホスト型のリアルタイム音声アシスタントクライアントです。スマホ側がやることは二つだけ——**録音と再生**。認識・対話・音声合成はすべて自分のサーバー（コードでは **brain**）で動きます。
 
-**PP は Push and Pull**。人とエージェントの両側が、それぞれ push し、それぞれ pull します。スマホはあなたの音声を brain に push し、長いポーリングで返事を pull します。エージェントはテキストを push し、人のテキストを pull します。四本のチャネルが同時に開いているので、協働は非同期です——あなたが話している最中でも、エージェントは話し始められます。
+**Push and Pull**。人とエージェントの両側が、それぞれ push し、それぞれ pull します。スマホはあなたの音声を brain に push し、長いポーリングで返事を pull します。エージェントはテキストを push し、人のテキストを pull します。四本のチャネルが同時に開いているので、協働は非同期です——あなたが話している最中でも、エージェントは話し始められます。
 
-> **Made with deepseek v4.1 flash and pp-friend itself.**
-> このプロジェクト自体の開発も PP Friend で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。
+> **Made with deepseek v4.1 flash and Zconnect itself.**
+> このプロジェクト自体の開発も Zconnect で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。
 
 ---
 
@@ -26,15 +26,15 @@
 
 プロジェクトサイト（製品紹介・アーキテクチャ・プライバシー。中国語 / English / 日本語）：
 
-**<https://thautwarm.github.io/pp-friend/>**
+**<https://thautwarm.github.io/zconnect/>**
 
 自分で brain を書きたい場合は、まずプロトコルから：
 
-**<https://thautwarm.github.io/pp-friend/brain-api/>**
+**<https://thautwarm.github.io/zconnect/brain-api/>**
 
 話者識別には本人の声紋が必要です。作成ページ：
 
-**<https://thautwarm.github.io/pp-friend/enroll/>**
+**<https://thautwarm.github.io/zconnect/enroll/>**
 
 ブラウザで短い音声を録音し、`spkemb.f32` をダウンロードして、アプリの **設定 → 一般 → 話者識別** から読み込みます。録音も推論もブラウザ内で完結し、音声はアップロードされません。サイトのソースは `tools/voiceprint` にあり、アプリにも「声紋をローカルで作成してダウンロード」ボタンがあります。
 

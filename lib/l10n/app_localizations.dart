@@ -1339,13 +1339,13 @@ abstract class AppLocalizations {
   /// No description provided for @micSettingsPath.
   ///
   /// In zh, this message translates to:
-  /// **'系统设置 → 隐私与安全性 → 麦克风 → 打开 pp_friend'**
+  /// **'系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect'**
   String get micSettingsPath;
 
   /// No description provided for @localNetworkSettingsPath.
   ///
   /// In zh, this message translates to:
-  /// **'系统设置 → 隐私与安全性 → 本地网络 → 打开 pp_friend'**
+  /// **'系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect'**
   String get localNetworkSettingsPath;
 
   /// No description provided for @continueBlocked.
@@ -1365,6 +1365,312 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'跳过正在播放的这句话'**
   String get skipCurrentSpeechTooltip;
+
+  /// No description provided for @profilesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'档案'**
+  String get profilesTitle;
+
+  /// No description provided for @profilesOpenCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{open}/{total} 已打开'**
+  String profilesOpenCount(int open, int total);
+
+  /// No description provided for @profilePanelClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'回到对话'**
+  String get profilePanelClose;
+
+  /// No description provided for @profileCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前'**
+  String get profileCurrent;
+
+  /// No description provided for @profileStatusClosed.
+  ///
+  /// In zh, this message translates to:
+  /// **'已关闭'**
+  String get profileStatusClosed;
+
+  /// No description provided for @profileStatusUnconfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'未配置 brain'**
+  String get profileStatusUnconfigured;
+
+  /// No description provided for @profileStatusAuthFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'token 无效'**
+  String get profileStatusAuthFailed;
+
+  /// No description provided for @profileStatusError.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接失败'**
+  String get profileStatusError;
+
+  /// No description provided for @profileStatusListening.
+  ///
+  /// In zh, this message translates to:
+  /// **'监听中'**
+  String get profileStatusListening;
+
+  /// No description provided for @profileStatusOpenIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开 · 待开始'**
+  String get profileStatusOpenIdle;
+
+  /// No description provided for @profileStatusConnecting.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开 · 连接中'**
+  String get profileStatusConnecting;
+
+  /// No description provided for @profileOpenAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开{name}'**
+  String profileOpenAction(String name);
+
+  /// No description provided for @profileCloseAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭{name}'**
+  String profileCloseAction(String name);
+
+  /// No description provided for @profileClosedTapHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name} 已关闭，点右上角开关打开'**
+  String profileClosedTapHint(String name);
+
+  /// No description provided for @profileOpenedIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开 {name}，开始对话后接收'**
+  String profileOpenedIdle(String name);
+
+  /// No description provided for @profileOpenedActive.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开 {name}，开始接收'**
+  String profileOpenedActive(String name);
+
+  /// No description provided for @profileClosedNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'已关闭 {name}，不再接收'**
+  String profileClosedNotice(String name);
+
+  /// No description provided for @profileClosedSwitched.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name} 已关闭，已切换到 {next}'**
+  String profileClosedSwitched(String name, String next);
+
+  /// No description provided for @profileAtCapacity.
+  ///
+  /// In zh, this message translates to:
+  /// **'最多同时打开 {max} 个，请先关闭一个'**
+  String profileAtCapacity(int max);
+
+  /// No description provided for @profileOverLimit.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开 {open} 个，超过上限 {max} 个，请关闭一些'**
+  String profileOverLimit(int open, int max);
+
+  /// No description provided for @profileOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开 {name} 失败'**
+  String profileOpenFailed(String name);
+
+  /// No description provided for @profileCloseFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭 {name} 失败'**
+  String profileCloseFailed(String name);
+
+  /// No description provided for @profileGroupSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'分组'**
+  String get profileGroupSection;
+
+  /// No description provided for @profileGroupLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'所在分组'**
+  String get profileGroupLabel;
+
+  /// No description provided for @profileUngrouped.
+  ///
+  /// In zh, this message translates to:
+  /// **'未分组'**
+  String get profileUngrouped;
+
+  /// No description provided for @profileUntitledGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'未命名分组'**
+  String get profileUntitledGroup;
+
+  /// No description provided for @profileNewGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建分组'**
+  String get profileNewGroup;
+
+  /// No description provided for @profileGroupNameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'分组名称'**
+  String get profileGroupNameLabel;
+
+  /// No description provided for @profileGroupNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例如：工作'**
+  String get profileGroupNameHint;
+
+  /// No description provided for @profileGroupCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'创建'**
+  String get profileGroupCreate;
+
+  /// No description provided for @profileGroupRename.
+  ///
+  /// In zh, this message translates to:
+  /// **'重命名'**
+  String get profileGroupRename;
+
+  /// No description provided for @profileGroupDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除分组'**
+  String get profileGroupDelete;
+
+  /// No description provided for @profileGroupMoveUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'上移'**
+  String get profileGroupMoveUp;
+
+  /// No description provided for @profileGroupMoveDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'下移'**
+  String get profileGroupMoveDown;
+
+  /// No description provided for @profileGroupDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除分组 {name}，成员回到未分组'**
+  String profileGroupDeleted(String name);
+
+  /// No description provided for @profileGroupCreated.
+  ///
+  /// In zh, this message translates to:
+  /// **'已创建分组 {name}'**
+  String profileGroupCreated(String name);
+
+  /// No description provided for @profileGroupRenamed.
+  ///
+  /// In zh, this message translates to:
+  /// **'分组已改名为 {name}'**
+  String profileGroupRenamed(String name);
+
+  /// No description provided for @profileGroupEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个分组里还没有档案'**
+  String get profileGroupEmpty;
+
+  /// No description provided for @profileAllGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get profileAllGroups;
+
+  /// No description provided for @profileSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索档案'**
+  String get profileSearchHint;
+
+  /// No description provided for @profileSearchEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的档案'**
+  String get profileSearchEmpty;
+
+  /// No description provided for @profileGroupMenuTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'分组操作'**
+  String get profileGroupMenuTooltip;
+
+  /// No description provided for @profileCardActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'档案操作'**
+  String get profileCardActions;
+
+  /// No description provided for @profileCardEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑档案'**
+  String get profileCardEdit;
+
+  /// No description provided for @profileCardMoveGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动到分组'**
+  String get profileCardMoveGroup;
+
+  /// No description provided for @profileMoveToGroupTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动到分组'**
+  String get profileMoveToGroupTitle;
+
+  /// No description provided for @profileMoveToGroupNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建分组…'**
+  String get profileMoveToGroupNew;
+
+  /// No description provided for @profileMovedToGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'已将 {name} 移到 {group}'**
+  String profileMovedToGroup(String name, String group);
+
+  /// No description provided for @profileMoveToGroupFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动 {name} 失败'**
+  String profileMoveToGroupFailed(String name);
+
+  /// No description provided for @profileDragHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'长按拖动排序'**
+  String get profileDragHint;
+
+  /// No description provided for @profileGroupDragHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'长按分组标题调整顺序'**
+  String get profileGroupDragHint;
 }
 
 class _AppLocalizationsDelegate

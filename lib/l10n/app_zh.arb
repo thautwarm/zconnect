@@ -282,9 +282,149 @@
     }
   },
   "invalidBrainUrl": "地址要以 http:// 或 https:// 开头",
-  "micSettingsPath": "系统设置 → 隐私与安全性 → 麦克风 → 打开 pp_friend",
-  "localNetworkSettingsPath": "系统设置 → 隐私与安全性 → 本地网络 → 打开 pp_friend",
+  "micSettingsPath": "系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect",
+  "localNetworkSettingsPath": "系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect",
   "continueBlocked": "麦克风、brain 地址和本地网络都通过之后才能继续",
   "skipCurrentSpeech": "跳过",
-  "skipCurrentSpeechTooltip": "跳过正在播放的这句话"
+  "skipCurrentSpeechTooltip": "跳过正在播放的这句话",
+  "profilesTitle": "档案",
+  "profilesOpenCount": "{open}/{total} 已打开",
+  "@profilesOpenCount": {
+    "placeholders": {
+      "open": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "profilePanelClose": "回到对话",
+  "profileCurrent": "当前",
+  "profileStatusClosed": "已关闭",
+  "profileStatusUnconfigured": "未配置 brain",
+  "profileStatusAuthFailed": "token 无效",
+  "profileStatusError": "连接失败",
+  "profileStatusListening": "监听中",
+  "profileStatusOpenIdle": "已打开 · 待开始",
+  "profileStatusConnecting": "已打开 · 连接中",
+  "profileOpenAction": "打开{name}",
+  "@profileOpenAction": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileCloseAction": "关闭{name}",
+  "@profileCloseAction": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileClosedTapHint": "{name} 已关闭，点右上角开关打开",
+  "@profileClosedTapHint": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileOpenedIdle": "已打开 {name}，开始对话后接收",
+  "@profileOpenedIdle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileOpenedActive": "已打开 {name}，开始接收",
+  "@profileOpenedActive": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileClosedNotice": "已关闭 {name}，不再接收",
+  "@profileClosedNotice": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileClosedSwitched": "{name} 已关闭，已切换到 {next}",
+  "@profileClosedSwitched": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "next": {"type": "String"}
+    }
+  },
+  "profileAtCapacity": "最多同时打开 {max} 个，请先关闭一个",
+  "@profileAtCapacity": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "profileOverLimit": "已打开 {open} 个，超过上限 {max} 个，请关闭一些",
+  "@profileOverLimit": {
+    "placeholders": {
+      "open": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "profileOpenFailed": "打开 {name} 失败",
+  "@profileOpenFailed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileCloseFailed": "关闭 {name} 失败",
+  "@profileCloseFailed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileGroupSection": "分组",
+  "profileGroupLabel": "所在分组",
+  "profileUngrouped": "未分组",
+  "profileUntitledGroup": "未命名分组",
+  "profileNewGroup": "新建分组",
+  "profileGroupNameLabel": "分组名称",
+  "profileGroupNameHint": "例如：工作",
+  "profileGroupCreate": "创建",
+  "profileGroupRename": "重命名",
+  "profileGroupDelete": "删除分组",
+  "profileGroupMoveUp": "上移",
+  "profileGroupMoveDown": "下移",
+  "profileGroupDeleted": "已删除分组 {name}，成员回到未分组",
+  "@profileGroupDeleted": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileGroupCreated": "已创建分组 {name}",
+  "@profileGroupCreated": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileGroupRenamed": "分组已改名为 {name}",
+  "@profileGroupRenamed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileGroupEmpty": "这个分组里还没有档案",
+  "profileAllGroups": "全部",
+  "profileSearchHint": "搜索档案",
+  "profileSearchEmpty": "没有匹配的档案",
+  "profileGroupMenuTooltip": "分组操作",
+  "profileCardActions": "档案操作",
+  "profileCardEdit": "编辑档案",
+  "profileCardMoveGroup": "移动到分组",
+  "profileMoveToGroupTitle": "移动到分组",
+  "profileMoveToGroupNew": "新建分组…",
+  "profileMovedToGroup": "已将 {name} 移到 {group}",
+  "@profileMovedToGroup": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "group": {"type": "String"}
+    }
+  },
+  "profileMoveToGroupFailed": "移动 {name} 失败",
+  "@profileMoveToGroupFailed": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "profileDragHint": "长按拖动排序",
+  "profileGroupDragHint": "长按分组标题调整顺序"
 }

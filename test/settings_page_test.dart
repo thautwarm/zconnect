@@ -30,23 +30,55 @@ AssistantConfig _twoProfiles() => const AssistantConfig(
   focusedProfileId: 'p_a',
 );
 
+/// A、B 开着，C 关着 —— 用来验证设置页打开档案时的上限。
+AssistantConfig _threeProfiles() => const AssistantConfig(
+  profiles: [
+    Profile(
+      id: 'p_a',
+      name: 'A',
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'a'),
+    ),
+    Profile(
+      id: 'p_b',
+      name: 'B',
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'b'),
+    ),
+    Profile(
+      id: 'p_c',
+      name: 'C',
+      enabled: false,
+      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'c'),
+    ),
+  ],
+  focusedProfileId: 'p_a',
+);
+
 /// 全程不碰磁盘：历史走内存、头像走假的。
 ///
 /// **不能给它真的 appDir。** `testWidgets` 把测试体跑在假时钟里，真实的
 /// 异步文件 IO 在那里永远不会完成 —— 测试不是失败，是直接挂死，
 /// 连 `--timeout` 都救不了（超时靠定时器，定时器也在假时钟里）。
-Future<(ConversationController, FakeAvatarStore)> _boot() async {
-  final (controller, avatars, _) = await _bootFull();
+Future<(ConversationController, FakeAvatarStore)> _boot({
+  int maxOpenProfiles = 12,
+  AssistantConfig? config,
+}) async {
+  final (controller, avatars, _) = await _bootFull(
+    maxOpenProfiles: maxOpenProfiles,
+    config: config,
+  );
   return (controller, avatars);
 }
 
 /// 要多一个假引擎的时候用它 —— 断言"配置有没有真的推到原生"需要拿到它。
-Future<(ConversationController, FakeAvatarStore, FakeVoiceEngine)>
-_bootFull() async {
+Future<(ConversationController, FakeAvatarStore, FakeVoiceEngine)> _bootFull({
+  int maxOpenProfiles = 12,
+  AssistantConfig? config,
+}) async {
   final avatars = FakeAvatarStore();
   final engine = FakeVoiceEngine();
   final controller = ConversationController(
     engine: engine,
+    maxOpenProfiles: maxOpenProfiles,
     brainFactory: () =>
         BrainClient(client: MockClient((_) async => throw StateError('不该发请求'))),
     history: MemoryMessageStore(),
@@ -56,7 +88,7 @@ _bootFull() async {
       required AssistantConfig config,
     }) async => FakeSegmenter(),
   );
-  await controller.updateConfig(_twoProfiles());
+  await controller.updateConfig(config ?? _twoProfiles());
   return (controller, avatars, engine);
 }
 
@@ -74,6 +106,15 @@ Profile _profile(ConversationController c, String id) =>
 /// 按标签找输入框。比按下标找稳 —— 页面上本来就有一堆 TextField。
 Finder _field(String label) =>
     find.ancestor(of: find.text(label), matching: find.byType(TextField));
+
+/// 分组 section 排在 Brain 之后，默认 600px 高的测试视口里 ListView 不会
+/// 构建它。只给这两条分组测试一个更高的视口。
+void _useTallView(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
@@ -259,7 +300,9 @@ void main() {
     addTearDown(controller.dispose);
 
     await _pump(tester, controller);
-    await tester.tap(find.byIcon(Icons.add));
+    // 档案 chip 末尾那个加号。编辑器里现在也有一个「新建分组」的加号图标，
+    // 不能再按 Icons.add 盲找。
+    await tester.tap(find.byTooltip('新建档案'));
     await tester.pumpAndSettle();
 
     expect(controller.config.profiles.length, 3);
@@ -295,5 +338,96 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('A'), findsWidgets, reason: '页面照常，chip 上退回那个字');
     expect(avatars.files, isEmpty);
+  });
+
+  testWidgets('档案编辑器可以选择已有分组，保存后落到分组存储', (tester) async {
+    _useTallView(tester);
+    final (controller, _) = await _boot();
+    addTearDown(controller.dispose);
+    final group = await controller.createGroup('工作');
+
+    await _pump(tester, controller);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('profile-group-dropdown')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-group-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('工作').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(controller.groupIdOf('p_a'), group.id);
+  });
+
+  testWidgets('档案编辑器可以新建分组，并保存给当前档案', (tester) async {
+    _useTallView(tester);
+    final (controller, _) = await _boot();
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    await tester.ensureVisible(find.byKey(const ValueKey('profile-group-new')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-group-new')));
+    await tester.pumpAndSettle();
+
+    final field = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(field, '家庭');
+    await tester.pump();
+    await tester.tap(find.text('创建'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    final group = controller.profileGroups.singleWhere((g) => g.name == '家庭');
+    expect(controller.groupIdOf('p_a'), group.id);
+  });
+
+  testWidgets('设置页打开档案也不能绕过同时打开上限', (tester) async {
+    _useTallView(tester);
+    final (controller, _) = await _boot(
+      maxOpenProfiles: 2,
+      config: _threeProfiles(),
+    );
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    await tester.tap(find.text('C').last);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('启用'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('启用'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.config.profiles.firstWhere((p) => p.id == 'p_c').enabled,
+      isFalse,
+      reason: '上限必须拦住设置页这条路径',
+    );
+    expect(find.text('最多同时打开 2 个，请先关闭一个'), findsOneWidget);
+  });
+
+  testWidgets('达到上限时新建档案先保持关闭', (tester) async {
+    _useTallView(tester);
+    final (controller, _) = await _boot(maxOpenProfiles: 2);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    await tester.tap(find.byTooltip('新建档案'));
+    await tester.pumpAndSettle();
+
+    final created = controller.config.profiles.last;
+    expect(created.name, '新档案');
+    expect(created.enabled, isFalse, reason: '新建不能绕过上限；先关着，用户关掉别的再打开');
+    expect(find.text('最多同时打开 2 个，请先关闭一个'), findsOneWidget);
   });
 }

@@ -669,10 +669,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get invalidBrainUrl => '地址要以 http:// 或 https:// 开头';
 
   @override
-  String get micSettingsPath => '系统设置 → 隐私与安全性 → 麦克风 → 打开 pp_friend';
+  String get micSettingsPath => '系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect';
 
   @override
-  String get localNetworkSettingsPath => '系统设置 → 隐私与安全性 → 本地网络 → 打开 pp_friend';
+  String get localNetworkSettingsPath => '系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect';
 
   @override
   String get continueBlocked => '麦克风、brain 地址和本地网络都通过之后才能继续';
@@ -682,4 +682,191 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get skipCurrentSpeechTooltip => '跳过正在播放的这句话';
+
+  @override
+  String get profilesTitle => '档案';
+
+  @override
+  String profilesOpenCount(int open, int total) {
+    return '$open/$total 已打开';
+  }
+
+  @override
+  String get profilePanelClose => '回到对话';
+
+  @override
+  String get profileCurrent => '当前';
+
+  @override
+  String get profileStatusClosed => '已关闭';
+
+  @override
+  String get profileStatusUnconfigured => '未配置 brain';
+
+  @override
+  String get profileStatusAuthFailed => 'token 无效';
+
+  @override
+  String get profileStatusError => '连接失败';
+
+  @override
+  String get profileStatusListening => '监听中';
+
+  @override
+  String get profileStatusOpenIdle => '已打开 · 待开始';
+
+  @override
+  String get profileStatusConnecting => '已打开 · 连接中';
+
+  @override
+  String profileOpenAction(String name) {
+    return '打开$name';
+  }
+
+  @override
+  String profileCloseAction(String name) {
+    return '关闭$name';
+  }
+
+  @override
+  String profileClosedTapHint(String name) {
+    return '$name 已关闭，点右上角开关打开';
+  }
+
+  @override
+  String profileOpenedIdle(String name) {
+    return '已打开 $name，开始对话后接收';
+  }
+
+  @override
+  String profileOpenedActive(String name) {
+    return '已打开 $name，开始接收';
+  }
+
+  @override
+  String profileClosedNotice(String name) {
+    return '已关闭 $name，不再接收';
+  }
+
+  @override
+  String profileClosedSwitched(String name, String next) {
+    return '$name 已关闭，已切换到 $next';
+  }
+
+  @override
+  String profileAtCapacity(int max) {
+    return '最多同时打开 $max 个，请先关闭一个';
+  }
+
+  @override
+  String profileOverLimit(int open, int max) {
+    return '已打开 $open 个，超过上限 $max 个，请关闭一些';
+  }
+
+  @override
+  String profileOpenFailed(String name) {
+    return '打开 $name 失败';
+  }
+
+  @override
+  String profileCloseFailed(String name) {
+    return '关闭 $name 失败';
+  }
+
+  @override
+  String get profileGroupSection => '分组';
+
+  @override
+  String get profileGroupLabel => '所在分组';
+
+  @override
+  String get profileUngrouped => '未分组';
+
+  @override
+  String get profileUntitledGroup => '未命名分组';
+
+  @override
+  String get profileNewGroup => '新建分组';
+
+  @override
+  String get profileGroupNameLabel => '分组名称';
+
+  @override
+  String get profileGroupNameHint => '例如：工作';
+
+  @override
+  String get profileGroupCreate => '创建';
+
+  @override
+  String get profileGroupRename => '重命名';
+
+  @override
+  String get profileGroupDelete => '删除分组';
+
+  @override
+  String get profileGroupMoveUp => '上移';
+
+  @override
+  String get profileGroupMoveDown => '下移';
+
+  @override
+  String profileGroupDeleted(String name) {
+    return '已删除分组 $name，成员回到未分组';
+  }
+
+  @override
+  String profileGroupCreated(String name) {
+    return '已创建分组 $name';
+  }
+
+  @override
+  String profileGroupRenamed(String name) {
+    return '分组已改名为 $name';
+  }
+
+  @override
+  String get profileGroupEmpty => '这个分组里还没有档案';
+
+  @override
+  String get profileAllGroups => '全部';
+
+  @override
+  String get profileSearchHint => '搜索档案';
+
+  @override
+  String get profileSearchEmpty => '没有匹配的档案';
+
+  @override
+  String get profileGroupMenuTooltip => '分组操作';
+
+  @override
+  String get profileCardActions => '档案操作';
+
+  @override
+  String get profileCardEdit => '编辑档案';
+
+  @override
+  String get profileCardMoveGroup => '移动到分组';
+
+  @override
+  String get profileMoveToGroupTitle => '移动到分组';
+
+  @override
+  String get profileMoveToGroupNew => '新建分组…';
+
+  @override
+  String profileMovedToGroup(String name, String group) {
+    return '已将 $name 移到 $group';
+  }
+
+  @override
+  String profileMoveToGroupFailed(String name) {
+    return '移动 $name 失败';
+  }
+
+  @override
+  String get profileDragHint => '长按拖动排序';
+
+  @override
+  String get profileGroupDragHint => '长按分组标题调整顺序';
 }

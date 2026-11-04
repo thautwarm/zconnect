@@ -1,13 +1,13 @@
-# PP Friend
+# Zconnect
 
 [English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md)
 
 A self-hosted real-time voice assistant client. The phone does two things — **capture audio and play audio**; recognition, conversation, and speech synthesis all run on your own server (called the **brain** in the code).
 
-**PP is Push and Pull.** Both sides push and both sides pull. The phone pushes your speech to the brain and long-polls for its reply; the agent pushes its text in and pulls human text out. All four channels stay open at once, so the collaboration is asynchronous: the agent can speak while you are still talking.
+**Push and Pull.** Both sides push and both sides pull. The phone pushes your speech to the brain and long-polls for its reply; the agent pushes its text in and pulls human text out. All four channels stay open at once, so the collaboration is asynchronous: the agent can speak while you are still talking.
 
-> **Made with deepseek v4.1 flash and pp-friend itself.**
-> The project was built with PP Friend: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.
+> **Made with deepseek v4.1 flash and Zconnect itself.**
+> The project was built with Zconnect: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.
 
 ---
 
@@ -26,15 +26,15 @@ A voice assistant you can talk to at any time, running on a brain in your own ho
 
 Project site (product overview, architecture, privacy; Chinese / English / Japanese):
 
-**<https://thautwarm.github.io/pp-friend/>**
+**<https://thautwarm.github.io/zconnect/>**
 
 Want to write your own brain? Start with the protocol:
 
-**<https://thautwarm.github.io/pp-friend/brain-api/>**
+**<https://thautwarm.github.io/zconnect/brain-api/>**
 
 Speaker verification needs a voiceprint. Creation page:
 
-**<https://thautwarm.github.io/pp-friend/enroll/>**
+**<https://thautwarm.github.io/zconnect/enroll/>**
 
 Record a short sample in the browser, download `spkemb.f32`, then import it in the app under **Settings → General → Speaker verification**. Recording and inference happen locally in the browser; audio is never uploaded. The site source lives in `tools/voiceprint`; the app also has a "Create your voiceprint locally and download it" button.
 
