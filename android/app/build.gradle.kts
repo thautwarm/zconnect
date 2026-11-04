@@ -1,7 +1,47 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing: local builds may use android/key.properties (gitignored);
+// CI reads the same values from environment variables populated by Actions
+// secrets. The key must stay stable across builds or Android will refuse to
+// update an installed app without uninstalling it first.
+val releaseSigningProperties = Properties()
+val releaseSigningFile = rootProject.file("key.properties")
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.inputStream().use { releaseSigningProperties.load(it) }
+}
+
+fun releaseSigningValue(property: String, env: String): String? =
+    releaseSigningProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(env)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = releaseSigningValue("storeFile", "ANDROID_KEYSTORE_PATH")
+val releaseStorePassword =
+    releaseSigningValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = releaseSigningValue("keyAlias", "ANDROID_KEY_ALIAS")
+val releaseKeyPassword =
+    releaseSigningValue("keyPassword", "ANDROID_KEY_PASSWORD")
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
+// A CI build must never silently produce a debug-signed artifact. Fork PRs
+// skip the APK build in the workflow because Actions secrets are unavailable
+// to them, so this check only fires for jobs that actually attempt release.
+if (System.getenv("CI") == "true" && !hasReleaseSigning) {
+    throw GradleException(
+        "CI release build requires ANDROID_KEYSTORE_PATH, " +
+            "ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and " +
+            "ANDROID_KEY_PASSWORD.",
+    )
 }
 
 android {
@@ -52,11 +92,28 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                // Key properties are intentionally absent from the repo.
+                // Local: android/key.properties. CI: decoded into RUNNER_TEMP.
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Fallback keeps `flutter run --release` working for contributors
+            // without a key, but CI refuses to build unsigned above.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
