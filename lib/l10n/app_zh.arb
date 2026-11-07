@@ -433,5 +433,8 @@
   },
   "profileDragHint": "长按拖动排序",
   "profileGroupDragHint": "长按分组标题调整顺序",
-  "profileBackToMessages": "回到消息"
+  "profileBackToMessages": "回到消息",
+  "copyCode": "复制代码",
+  "copiedToClipboard": "已复制",
+  "linkOpenFailed": "打不开这个链接"
 }

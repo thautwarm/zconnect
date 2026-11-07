@@ -279,5 +279,8 @@
   "profileMoveToGroupFailed": "Could not move {name}",
   "profileDragHint": "Long-press to reorder",
   "profileGroupDragHint": "Long-press a group title to reorder",
-  "profileBackToMessages": "Back to messages"
+  "profileBackToMessages": "Back to messages",
+  "copyCode": "Copy code",
+  "copiedToClipboard": "Copied",
+  "linkOpenFailed": "Could not open this link"
 }

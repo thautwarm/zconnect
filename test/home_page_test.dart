@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:pp_friend/src/config/assistant_config.dart';
@@ -377,7 +378,7 @@ void main() {
     );
   });
 
-  testWidgets('消息正文是可选中的文本，时间戳不参与选择', (tester) async {
+  testWidgets('消息正文可选中：用户消息保持纯文本，助手消息走 Markdown', (tester) async {
     final store = MemoryMessageStore();
     await store.append('p_a', role: MessageRole.user, text: '我上次说的');
     await store.append('p_a', role: MessageRole.assistant, text: '它上次回的');
@@ -386,25 +387,49 @@ void main() {
 
     await _pumpHome(tester, controller);
 
-    final selectables = tester
-        .widgetList<SelectableText>(find.byType(SelectableText))
-        .toList();
-    expect(
-      selectables.map((widget) => widget.data),
-      unorderedEquals(<String>['我上次说的', '它上次回的']),
-      reason: '每条消息正文都应该是 SelectableText（含有可选中文本）',
-    );
-    expect(
-      selectables.every((widget) => widget.enableInteractiveSelection),
-      isTrue,
-      reason: '必须允许交互式选择（手机长按 / 桌面拖选、右键）',
-    );
-    expect(
+    // 用户消息仍然是普通的 SelectableText，且没有被 Markdown 解析。
+    final userSelectable = tester.widgetList<SelectableText>(
       find.ancestor(
         of: find.text('我上次说的'),
         matching: find.byType(SelectableText),
       ),
+    );
+    expect(userSelectable, hasLength(1));
+    expect(userSelectable.single.data, '我上次说的');
+    expect(userSelectable.single.enableInteractiveSelection, isTrue);
+    expect(
+      find.ancestor(of: find.text('我上次说的'), matching: find.byType(GptMarkdown)),
+      findsNothing,
+      reason: '用户的语音转写不能被当成 Markdown',
+    );
+
+    // 助手消息由 GptMarkdown 渲染，外面包着 SelectionArea 提供选中能力。
+    expect(find.byType(GptMarkdown), findsOneWidget);
+    expect(
+      find.ancestor(of: find.text('它上次回的'), matching: find.byType(GptMarkdown)),
       findsOneWidget,
     );
+    expect(
+      find.ancestor(
+        of: find.text('它上次回的'),
+        matching: find.byType(SelectionArea),
+      ),
+      findsOneWidget,
+      reason: '必须允许交互式选择（手机长按 / 桌面拖选、右键）',
+    );
+  });
+
+  testWidgets('助手消息的 Markdown 会渲染，用户消息里的符号保持原样', (tester) async {
+    final store = MemoryMessageStore();
+    await store.append('p_a', role: MessageRole.user, text: '**不是粗体**');
+    await store.append('p_a', role: MessageRole.assistant, text: '**是粗体**');
+    final controller = await _boot(store);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    expect(find.text('**不是粗体**'), findsOneWidget, reason: '用户消息按纯文本显示，星号不能被吃掉');
+    expect(find.text('是粗体'), findsOneWidget);
+    expect(find.text('**是粗体**'), findsNothing);
   });
 }

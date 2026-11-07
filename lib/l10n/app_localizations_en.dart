@@ -921,4 +921,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileBackToMessages => 'Back to messages';
+
+  @override
+  String get copyCode => 'Copy code';
+
+  @override
+  String get copiedToClipboard => 'Copied';
+
+  @override
+  String get linkOpenFailed => 'Could not open this link';
 }

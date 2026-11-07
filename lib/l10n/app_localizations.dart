@@ -1713,6 +1713,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'回到消息'**
   String get profileBackToMessages;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制代码'**
+  String get copyCode;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'已复制'**
+  String get copiedToClipboard;
+
+  /// No description provided for @linkOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'打不开这个链接'**
+  String get linkOpenFailed;
 }
 
 class _AppLocalizationsDelegate

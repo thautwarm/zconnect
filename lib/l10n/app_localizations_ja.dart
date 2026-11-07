@@ -897,4 +897,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileBackToMessages => 'メッセージに戻る';
+
+  @override
+  String get copyCode => 'コードをコピー';
+
+  @override
+  String get copiedToClipboard => 'コピーしました';
+
+  @override
+  String get linkOpenFailed => 'このリンクを開けませんでした';
 }

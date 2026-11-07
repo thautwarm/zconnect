@@ -344,5 +344,8 @@
   "profileMoveToGroupFailed": "{name} を移動できませんでした",
   "profileDragHint": "長押しで並べ替え",
   "profileGroupDragHint": "グループ名を長押しして並べ替え",
-  "profileBackToMessages": "メッセージに戻る"
+  "profileBackToMessages": "メッセージに戻る",
+  "copyCode": "コードをコピー",
+  "copiedToClipboard": "コピーしました",
+  "linkOpenFailed": "このリンクを開けませんでした"
 }

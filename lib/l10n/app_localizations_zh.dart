@@ -890,4 +890,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileBackToMessages => '回到消息';
+
+  @override
+  String get copyCode => '复制代码';
+
+  @override
+  String get copiedToClipboard => '已复制';
+
+  @override
+  String get linkOpenFailed => '打不开这个链接';
 }

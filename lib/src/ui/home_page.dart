@@ -9,6 +9,7 @@ import '../conversation/conversation_controller.dart';
 import '../conversation/message.dart';
 import 'debug_page.dart';
 import 'settings_page.dart';
+import 'widgets/message_markdown.dart';
 import 'widgets/profile_compact_bar.dart';
 import 'widgets/profile_grid_panel.dart';
 import 'widgets/voice_orb.dart';
@@ -262,9 +263,7 @@ class _HomePageState extends State<HomePage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
-      _scroll.jumpTo(
-        restore.clamp(0.0, _scroll.position.maxScrollExtent),
-      );
+      _scroll.jumpTo(restore.clamp(0.0, _scroll.position.maxScrollExtent));
     });
   }
 
@@ -810,12 +809,18 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   // 正文可选：手机长按、桌面拖选/右键都能走系统选择菜单。
                   // 时间戳仍是普通 Text，不参与选择。
-                  SelectableText(
-                    message.text,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: foreground,
-                    ),
-                  ),
+                  //
+                  // 用户消息是语音转出来的，必须保持纯文本 —— 否则一句随口
+                  // 说的 `*` 或 `#` 会被当成 Markdown。助手消息才渲染格式。
+                  if (fromUser)
+                    SelectableText(
+                      message.text,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: foreground,
+                      ),
+                    )
+                  else
+                    MessageMarkdown(data: message.text, foreground: foreground),
                   const SizedBox(height: 3),
                   Text(
                     message.time,
