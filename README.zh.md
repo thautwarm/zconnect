@@ -1,4 +1,4 @@
-# Zconnect
+# Z Connect
 
 [English](README.md) · 中文 · [日本語](README.ja.md)
 
@@ -6,10 +6,29 @@
 
 **Push and Pull**：人和 agent 两边各自 push、各自 pull。手机把你的语音推给 brain，再长轮询取回它的回复；agent 把文本推进来，也把人的文本拉回去。四路通道一直开着，所以是异步协作——你还在说话，它也能开口。
 
-> **Made with deepseek v4.1 flash and Zconnect itself.**
-> 这个项目的开发过程本身就用 Zconnect 在跑：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。
+> **Made with deepseek v4.1 flash and Z Connect itself.**
+> 这个项目的开发过程本身就用 Z Connect 在跑：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。
 
 ---
+
+## 截图
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/01-channels.webp" width="240" alt="频道列表"><br>
+      <sub>频道与分组</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/02-channel-settings.webp" width="240" alt="频道设置"><br>
+      <sub>频道设置</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/03-message-svg.webp" width="240" alt="带内联 SVG 的消息"><br>
+      <sub>消息流中的内联 SVG</sub>
+    </td>
+  </tr>
+</table>
 
 ## 它是什么
 
@@ -20,7 +39,7 @@
 - **后台不中断**：切到别的 App 或锁屏，对话继续（前台服务撑住录音）；如果那个 App 拿走了音频焦点（视频、音乐），语音先暂停、连接不断，回到本 App 后继续
 - **本地断句**：Silero VAD 跑在手机上（Rust），只把成句的片段传上去，不是把连续音频整段推流
 - **声纹门控**：用创建好的声纹和这一段语音算 ECAPA 余弦相似度，够长的句子低于阈值就整段丢掉——家人说话不上传，也不进 agent 的上下文
-- **多个档案**：每个档案一套 brain 配置、一份独立历史，可以同时跑；但只有聚焦的那个会播声音，其余只记文字
+- **多个频道**：每个频道一套 brain 配置、一份独立历史，可以同时跑；但只有聚焦的那个会播声音，其余只记文字
 
 ## 项目主页与声纹创建
 
@@ -43,7 +62,7 @@
 
 ## 架构
 
-**手机端不持有对话上下文**——那是服务端的，换 brain 名字就是换一段对话。
+**手机端不持有对话上下文**——那是服务端的，换频道就是换一段对话。
 手机端落盘的只是**用于展示的历史**，不进任何请求，删掉不影响对话。
 
 | 层 | 技术 |

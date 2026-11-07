@@ -1,4 +1,4 @@
-# Zconnect
+# Z Connect
 
 [English](README.md) · [中文](README.zh.md) · 日本語
 
@@ -6,10 +6,29 @@
 
 **Push and Pull**。人とエージェントの両側が、それぞれ push し、それぞれ pull します。スマホはあなたの音声を brain に push し、長いポーリングで返事を pull します。エージェントはテキストを push し、人のテキストを pull します。四本のチャネルが同時に開いているので、協働は非同期です——あなたが話している最中でも、エージェントは話し始められます。
 
-> **Made with deepseek v4.1 flash and Zconnect itself.**
-> このプロジェクト自体の開発も Zconnect で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。
+> **Made with deepseek v4.1 flash and Z Connect itself.**
+> このプロジェクト自体の開発も Z Connect で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。
 
 ---
+
+## スクリーンショット
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/01-channels.webp" width="240" alt="チャンネル一覧"><br>
+      <sub>チャンネルとグループ</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/02-channel-settings.webp" width="240" alt="チャンネル設定"><br>
+      <sub>チャンネル設定</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/03-message-svg.webp" width="240" alt="インライン SVG を含むメッセージ"><br>
+      <sub>メッセージ内のインライン SVG</sub>
+    </td>
+  </tr>
+</table>
 
 ## これは何か
 
@@ -17,10 +36,10 @@
 
 - **全二重**：ユーザーが話している間も AI は聞き、AI が話している間もユーザーは聞く。両方向が同時に開いています
 - **割り込み**：AI が話している途中でユーザーが話し始めると、すぐに止まります。そのとき「どこが聞こえなかったか」を brain に伝え、話し終えたことにはしません
-- **バックグラウンドで継続**：別のアプリに切り替えても、画面をロックしても会話は続きます（フォアグラウンドサービスが録音を保持）
+- **バックグラウンドで継続**：別のアプリに切り替えても、画面をロックしても会話は続きます（フォアグラウンドサービスが録音を保持）。動画や音楽など他のアプリが音声フォーカスを取った場合は、接続を切らずに音声を一時停止し、戻ったら再開します
 - **端末側の区間検出**：Silero VAD がスマホ上（Rust）で動き、文が完結した区間だけを送ります。連続した音声を丸ごとストリーミングするのではありません
 - **声紋ゲート**：作成した声紋とその区間の音声の ECAPA コサイン類似度を計算し、十分に長い文がしきい値を下回れば区間ごと破棄します。家族の声はアップロードされず、エージェントのコンテキストにも入りません
-- **複数プロファイル**：プロファイルごとに brain 設定と独立した履歴を持ち、同時に動かせます。音声を出すのはフォーカス中の一つだけで、ほかはテキストのみ記録します
+- **複数チャンネル**：チャンネルごとに brain 設定と独立した履歴を持ち、同時に動かせます。音声を出すのはフォーカス中の一つだけで、ほかはテキストのみ記録します
 
 ## プロジェクトサイトと声紋作成
 
@@ -40,20 +59,20 @@
 
 ## アーキテクチャ
 
-**スマホ側は会話コンテキストを持ちません**——それはサーバー側にあり、brain の名前を変えれば別の会話になります。スマホに保存されるのは**表示用の履歴**だけで、どのリクエストにも含まれず、削除しても会話に影響しません。
+**スマホ側は会話コンテキストを持ちません**——それはサーバー側にあり、チャンネルを切り替えれば別の会話になります。スマホに保存されるのは**表示用の履歴**だけで、どのリクエストにも含まれず、削除しても会話に影響しません。
 
 | 層 | 技術 |
 |---|---|
 | UI / ビジネスロジック | Flutter（Dart 3.13） |
 | 端末側の区間検出 | Rust + Silero VAD、flutter_rust_bridge 2.13 |
 | 声紋ゲート | Rust + ECAPA コサイン類似度（int8 ONNX、23 MB）。声紋は `tools/voiceprint` の Web ページで生成 |
-| 音声エンジン | Android ネイティブ（Kotlin）：AudioRecord / AudioTrack / AEC |
+| 音声エンジン | Android ネイティブ（Kotlin）：AudioRecord / AudioTrack / AEC；macOS ネイティブ（Swift）：AVAudioEngine + VPIO AEC |
 | 上りエンコード | Ogg Opus 16 kHz（MediaCodec + MediaMuxer） |
 | 下りデコード | 連続 Ogg Opus 24 kHz（独自の増分パーサー + MediaCodec）→ 16 kHz にリサンプル |
 | サーバーとの通信 | HTTP + MessagePack。上りはリクエスト／レスポンス、下りは前書き（テキスト）+ 連続音声ストリーム |
 | 履歴の保存 | NDJSON、1 MB ごとに分割、追記のみ |
 
-**Android arm64 のみ**、minSdk 29。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
+**Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**にもネイティブ音声エンジン（Swift + libopus/libogg + 同じ Rust VAD）があります。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
 
 ## ビルド
 
@@ -70,11 +89,21 @@ flutter build apk --release
 tools/build_rust_android.sh
 ```
 
+macOS（14+、Apple Silicon）。Xcode の Build Phases が次のネイティブ依存スクリプトを自動で実行します：
+
+```bash
+tools/build_opus_macos.sh   # 静的 libopus + libogg → macos/Vendor
+tools/build_rust_macos.sh   # Rust VAD dylib + ONNX Runtime → macos/Frameworks
+flutter build macos --release
+```
+
 ## リリース
 
 GitHub Actions（`.github/workflows/build-release.yml`）は、`main` への push、
 Pull Request、手動実行のたびに `flutter analyze` と `flutter test` を回し、
-arm64-v8a の release APK をビルドしてワークフローの成果物として添付します。
+`ubuntu-latest` で arm64-v8a の release APK を、`macos-14` で Apple Silicon の
+macOS アプリ（XCTest 付き）をビルドします。どちらもワークフローの成果物として
+添付されますが、GitHub Release に入るのは APK だけです。
 
 GitHub Release を公開するには、`pubspec.yaml` のバージョンに合わせたタグを
 push します：

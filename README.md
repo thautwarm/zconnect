@@ -1,4 +1,4 @@
-# Zconnect
+# Z Connect
 
 [English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md)
 
@@ -6,10 +6,29 @@ A self-hosted real-time voice assistant client. The phone does two things — **
 
 **Push and Pull.** Both sides push and both sides pull. The phone pushes your speech to the brain and long-polls for its reply; the agent pushes its text in and pulls human text out. All four channels stay open at once, so the collaboration is asynchronous: the agent can speak while you are still talking.
 
-> **Made with deepseek v4.1 flash and Zconnect itself.**
-> The project was built with Zconnect: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.
+> **Made with deepseek v4.1 flash and Z Connect itself.**
+> The project was built with Z Connect: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.
 
 ---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/01-channels.webp" width="240" alt="Channel fleet"><br>
+      <sub>Channels and groups</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/02-channel-settings.webp" width="240" alt="Channel settings"><br>
+      <sub>Channel settings</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/03-message-svg.webp" width="240" alt="Message with inline SVG"><br>
+      <sub>Message stream with inline SVG</sub>
+    </td>
+  </tr>
+</table>
 
 ## What it is
 
@@ -20,7 +39,7 @@ A voice assistant you can talk to at any time, running on a brain in your own ho
 - **Keeps running in the background**: switch apps or lock the screen and the conversation continues (a foreground service holds the recording); if the other app takes audio focus (video, music), voice pauses without dropping the connection and resumes when you come back
 - **Local endpointing**: Silero VAD runs on the phone (Rust); only complete utterances are uploaded, not a continuous audio stream
 - **Speaker verification**: compares your voiceprint against each utterance with ECAPA cosine similarity; long enough utterances below the threshold are dropped entirely — family members' speech is neither uploaded nor added to the agent's context
-- **Multiple profiles**: each profile has its own brain configuration and history and can run concurrently; only the focused one plays audio, the others only record text
+- **Multiple channels**: each channel has its own brain configuration and history and can run concurrently; only the focused one plays audio, the others only record text
 
 ## Project site and voiceprint creation
 
@@ -40,7 +59,7 @@ Record a short sample in the browser, download `spkemb.f32`, then import it in t
 
 ## Architecture
 
-**The phone does not hold conversation context** — that belongs to the server. Switching the brain name switches to another conversation. What the phone stores locally is only **display history**: it is not part of any request, and deleting it does not affect the conversation.
+**The phone does not hold conversation context** — that belongs to the server. Switching channels switches to another conversation. What the phone stores locally is only **display history**: it is not part of any request, and deleting it does not affect the conversation.
 
 | Layer | Technology |
 |---|---|
