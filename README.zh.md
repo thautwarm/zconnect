@@ -2,7 +2,7 @@
 
 [English](README.md) · 中文 · [日本語](README.ja.md)
 
-自托管的实时语音助手客户端。手机端只做两件事——**采音、放音**；识别、对话、合成全部交给服务端（代码里叫 **brain**）。
+由你自己托管的实时语音助手客户端。手机端只做两件事——**采音、放音**；识别、对话、合成全部交给服务端（代码里叫 **brain**）。
 
 **Push and Pull**：人和 agent 两边各自 push、各自 pull。手机把你的语音推给 brain，再长轮询取回它的回复；agent 把文本推进来，也把人的文本拉回去。四路通道一直开着，所以是异步协作——你还在说话，它也能开口。
 
@@ -78,9 +78,9 @@
 
 **Android arm64**，minSdk 29；**macOS 14+（Apple Silicon）**也有原生语音引擎（Swift + libopus/libogg + 同一份 Rust VAD）。iOS 的 Dart 契约已就绪，原生侧没写。
 
-## 自部署 brain
+## 控制服务器
 
-自部署控制服务器需要 brain server、一个 OpenAI 兼容的 ASR 转写 API，以及一个 TTS API（自部署或通过兼容层）。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) 是一个参考实现；[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) 可以在 8G 显卡上部署 TTS。
+控制服务器由你自己托管。运行它需要 brain server、一个 OpenAI 兼容的 ASR 转写 API，以及一个 TTS API（自己托管或通过兼容层）。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) 是一个参考实现；[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) 可以在 8G 显卡上部署 TTS。
 
 ## 构建
 

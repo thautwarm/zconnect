@@ -2,7 +2,7 @@
 
 [English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md)
 
-A self-hosted real-time voice assistant client. The phone does two things — **capture audio and play audio**; recognition, conversation, and speech synthesis all run on your own server (called the **brain** in the code).
+A real-time voice assistant client that you host. The phone does two things — **capture audio and play audio**; recognition, conversation, and speech synthesis all run on your own server (called the **brain** in the code).
 
 **Push and Pull.** Both sides push and both sides pull. The phone pushes your speech to the brain and long-polls for its reply; the agent pushes its text in and pulls human text out. All four channels stay open at once, so the collaboration is asynchronous: the agent can speak while you are still talking.
 
@@ -74,9 +74,9 @@ Record a short sample in the browser, download `spkemb.f32`, then import it in t
 
 **Android arm64 only**, minSdk 29. **macOS 14+ on Apple Silicon** has a native voice engine (Swift + libopus/libogg + the same Rust VAD); iOS has the Dart contract only.
 
-## Self-hosted brain
+## Control server
 
-To self-host the control server you need a brain server, an OpenAI-compatible ASR transcription API, and a TTS API (self-hosted or behind a compatibility layer). [pp-brain-server](https://github.com/thautwarm/pp-brain-server) is a reference implementation. [moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) can run the TTS on an 8 GB GPU.
+The control server is hosted by you. Running it requires a brain server, an OpenAI-compatible ASR transcription API, and a TTS API (hosted by you or behind a compatibility layer). [pp-brain-server](https://github.com/thautwarm/pp-brain-server) is a reference implementation. [moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) can run the TTS on an 8 GB GPU.
 
 ## Build
 

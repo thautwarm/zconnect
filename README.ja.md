@@ -2,7 +2,7 @@
 
 [English](README.md) · [中文](README.zh.md) · 日本語
 
-セルフホスト型のリアルタイム音声アシスタントクライアントです。スマホ側がやることは二つだけ——**録音と再生**。認識・対話・音声合成はすべて自分のサーバー（コードでは **brain**）で動きます。
+自分でホストするリアルタイム音声アシスタントクライアントです。スマホ側がやることは二つだけ——**録音と再生**。認識・対話・音声合成はすべて自分のサーバー（コードでは **brain**）で動きます。
 
 **Push and Pull**。人とエージェントの両側が、それぞれ push し、それぞれ pull します。スマホはあなたの音声を brain に push し、長いポーリングで返事を pull します。エージェントはテキストを push し、人のテキストを pull します。四本のチャネルが同時に開いているので、協働は非同期です——あなたが話している最中でも、エージェントは話し始められます。
 
@@ -74,9 +74,9 @@
 
 **Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**にもネイティブ音声エンジン（Swift + libopus/libogg + 同じ Rust VAD）があります。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
 
-## brain のセルフホスト
+## コントロールサーバー
 
-コントロールサーバーをセルフホストするには、brain サーバー、OpenAI 互換の ASR 文字起こし API、そして TTS API（セルフホストまたは互換レイヤー経由）が必要です。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) はリファレンス実装です。[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) は 8 GB の GPU で TTS を動かせます。
+コントロールサーバーは自分でホストします。動かすには、brain サーバー、OpenAI 互換の ASR 文字起こし API、そして TTS API（自分でホストするか、互換レイヤー経由）が必要です。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) はリファレンス実装です。[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) は 8 GB の GPU で TTS を動かせます。
 
 ## ビルド
 
