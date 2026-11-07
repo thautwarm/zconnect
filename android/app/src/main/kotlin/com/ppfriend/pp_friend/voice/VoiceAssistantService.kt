@@ -38,7 +38,7 @@ class VoiceAssistantService : Service() {
          * LOW = 不响、不弹、不震，只在通知栏常驻。
          */
         private const val CHANNEL_ID = "voice_assistant"
-        private const val CHANNEL_NAME = "Zconnect"
+        private const val CHANNEL_NAME = "Z Connect"
         private const val CHANNEL_DESC = "对话进行中时显示"
         private const val NOTIFICATION_ID = 4242
 
@@ -160,7 +160,7 @@ class VoiceAssistantService : Service() {
         }
 
         builder
-            .setContentTitle("Zconnect")
+            .setContentTitle("Z Connect")
             .setContentText("对话进行中，可切到其他应用")
             .setSmallIcon(applicationInfo.icon)
             .setContentIntent(openApp)

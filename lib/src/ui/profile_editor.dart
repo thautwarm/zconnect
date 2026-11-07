@@ -10,25 +10,42 @@ import '../conversation/conversation_controller.dart';
 import 'widgets/group_name_dialog.dart';
 import 'widgets/settings_widgets.dart';
 
-/// 一个档案的全部设置。
+/// 一个频道的全部设置。
 ///
-/// 它是**设置页里"档案"那个 tab 的内容**，不是独立一个页面 —— 档案之间
-/// 用上面那条 tab 切换，切过来就地编辑，不用反复进出二级页。
+/// 它只负责**表单本身和落盘**，页面外壳（标题、保存按钮、返回确认）由
+/// `ChannelSettingsPage` 负责。这样编辑现有频道和新建草稿共用同一份表单。
+///
+/// `isNew == true` 时 [profile] 是一份**还没写进配置的草稿**：`commit()`
+/// 会走 `saveProfile` 把它创建出来，再归入 [initialGroupId]（null = 未分组）。
+/// `isNew == false` 时按原来的方式更新配置里现有的那一份。
 ///
 /// 编辑状态（输入框里的字、挑好还没保存的头像）留在本 widget 里，落盘由
-/// [ProfileEditorState.commit] 负责。父级在**切换档案之前**会调一次它 ——
-/// 不然切走一次就把手上的改动丢了。
+/// [ProfileEditorState.commit] 负责。
 class ProfileEditor extends StatefulWidget {
   const ProfileEditor({
     super.key,
     required this.controller,
     required this.profile,
+    this.isNew = false,
+    this.initialGroupId,
+    this.onDeleted,
   });
 
   final ConversationController controller;
 
   /// 正在编辑的档案。**以父级从配置里现取的那一份为准**，不要缓存。
+  ///
+  /// 新建模式下这一份是草稿，只用来承载初始值。
   final Profile profile;
+
+  /// 新建草稿：保存前不存在于配置里。
+  final bool isNew;
+
+  /// 新建草稿的预设分组。null = 未分组。编辑模式下忽略。
+  final String? initialGroupId;
+
+  /// 删除成功后回调（页面用它 pop 回频道网格）。编辑模式才会触发。
+  final VoidCallback? onDeleted;
 
   @override
   State<ProfileEditor> createState() => ProfileEditorState();
@@ -60,6 +77,20 @@ class ProfileEditorState extends State<ProfileEditor> {
 
   int _historyBytes = 0;
   bool _busy = false;
+  bool _deleting = false;
+
+  /// 保存或删除正在进行。页面用它挡住返回键，避免删到一半又 pop 一次。
+  bool get busy => _busy || _deleting;
+
+  /// 上一次加载/保存时的值。用来判断有没有未保存的修改 —— 返回时要靠它
+  /// 决定弹不弹「放弃修改」的确认框。
+  late String _savedName;
+  late String _savedBaseUrl;
+  late String _savedBrainId;
+  late String _savedToken;
+  late int _savedAccent;
+  late bool _savedEnabled;
+  late String? _savedGroupId;
 
   /// 预设主题色。用色块而不是调色盘：一眼看全、点了就跑。
   /// 第一个和全局种子色一致，默认档案看着不突兀。
@@ -110,11 +141,49 @@ class ProfileEditorState extends State<ProfileEditor> {
     _token.text = profile.brain.token;
     _accent = profile.accentColor;
     _enabled = profile.enabled;
-    _groupId = widget.controller.groupIdOf(profile.id);
+    // 新建时用来源分组的预设值；编辑时以分组存储里的实际归属为准。
+    final preset = widget.isNew
+        ? widget.initialGroupId
+        : widget.controller.groupIdOf(profile.id);
+    // 组可能在打开页面之前被删了，别留一个悬空 id。
+    _groupId = widget.controller.profileGroups.any((g) => g.id == preset)
+        ? preset
+        : null;
+    _captureSaved();
     _pickedAvatar = null;
     _clearAvatar = false;
     _historyBytes = 0;
-    unawaited(_loadHistorySize());
+    // 草稿还没有历史，别为它读盘（更没必要为它显示使用量）。
+    if (!widget.isNew) unawaited(_loadHistorySize());
+  }
+
+  /// 记下此刻的值作为「已保存」基准。
+  void _captureSaved() {
+    _savedName = _name.text;
+    _savedBaseUrl = _baseUrl.text;
+    _savedBrainId = _brainId.text;
+    _savedToken = _token.text;
+    _savedAccent = _accent;
+    _savedEnabled = _enabled;
+    _savedGroupId = _groupId;
+  }
+
+  /// 表单里「启用」开关当前的值。页面用它判断保存后要不要提示上限。
+  bool get enabled => _enabled;
+
+  /// 表单里有没有还没落盘的内容。
+  ///
+  /// 头像只看「挑过/去掉过」的标志：真去读盘比较文件哈希既慢又没必要，
+  /// 这两个标志已经覆盖了用户做过的动作。
+  bool get isDirty {
+    if (_pickedAvatar != null || _clearAvatar) return true;
+    return _name.text != _savedName ||
+        _baseUrl.text != _savedBaseUrl ||
+        _brainId.text != _savedBrainId ||
+        _token.text != _savedToken ||
+        _accent != _savedAccent ||
+        _enabled != _savedEnabled ||
+        _groupId != _savedGroupId;
   }
 
   @override
@@ -144,33 +213,39 @@ class ProfileEditorState extends State<ProfileEditor> {
 
   /// 把这一屏的改动写进配置。
   ///
-  /// 父级在切档案、按保存、关页面之前都会调它。**从配置里重新取一次档案
-  /// 再改** —— 拿 widget 里那份快照写回会把别处刚存的字段回滚掉。
+  /// 新建模式会在这里真正创建频道（`saveProfile`），并归入
+  /// [ProfileEditor.initialGroupId]；保存之前配置里什么都没有。
   ///
-  /// 失败会抛（头像拷不进去之类），由调用方决定怎么提示。
+  /// 编辑模式**从配置里重新取一次档案再改** —— 拿 widget 里那份快照写回
+  /// 会把别处刚存的字段回滚掉。
   ///
-  /// 返回**有没有真的写进去**。这个档案已经被删掉时返回 false —— 调用方
+  /// 失败会抛（打开数超过上限、头像拷不进去之类），由调用方决定怎么提示。
+  ///
+  /// 返回**有没有真的写进去**。编辑的档案已经被删掉时返回 false —— 调用方
   /// 这时候不能弹"已保存"：改的名字、填的地址其实一个都没落盘。
   Future<bool> commit() async {
     if (_busy) return true; // 已经在写了，别重复写
-    final current = _current();
+    final current = widget.isNew ? widget.profile : _current();
     if (current == null) return false; // 档案已经被删了
     _busy = true;
+    var created = false;
+    Profile? createdProfile;
     try {
-      await widget.controller.saveProfile(
-        current.copyWith(
-          name: _name.text.trim(),
-          brain: BrainConfig(
-            baseUrl: _baseUrl.text.trim(),
-            brainId: _brainId.text.trim(),
-            token: _token.text.trim(),
-          ),
-          accentColor: _accent,
-          enabled: _enabled,
-          // 头像**不在这里清**：clearAvatar 一清，就不知道该删哪个文件了。
-          // 去掉头像走 setAvatar(id, null)，它读到的还是旧文件名。
+      final next = current.copyWith(
+        name: _name.text.trim(),
+        brain: BrainConfig(
+          baseUrl: _baseUrl.text.trim(),
+          brainId: _brainId.text.trim(),
+          token: _token.text.trim(),
         ),
+        accentColor: _accent,
+        enabled: _enabled,
+        // 头像**不在这里清**：clearAvatar 一清，就不知道该删哪个文件了。
+        // 去掉头像走 setAvatar(id, null)，它读到的还是旧文件名。
       );
+      await widget.controller.saveProfile(next);
+      created = widget.isNew;
+      createdProfile = next;
 
       // 分组存在独立 key 里，走 controller 的分组接口；组如果已经被删了，
       // 就当未分组写回，不能留一个悬空 id。
@@ -178,26 +253,39 @@ class ProfileEditorState extends State<ProfileEditor> {
       final groupId = groups.any((group) => group.id == _groupId)
           ? _groupId
           : null;
-      await widget.controller.assignProfileGroup(widget.profile.id, groupId);
+      await widget.controller.assignProfileGroup(next.id, groupId);
       _groupId = groupId;
 
       final picked = _pickedAvatar;
       if (picked != null) {
-        await widget.controller.setAvatar(widget.profile.id, picked);
-      } else if (_clearAvatar) {
-        await widget.controller.setAvatar(widget.profile.id, null);
+        await widget.controller.setAvatar(next.id, picked);
+      } else if (_clearAvatar && !widget.isNew) {
+        await widget.controller.setAvatar(next.id, null);
       }
       _pickedAvatar = null;
       _clearAvatar = false;
+      _captureSaved();
     } on ProfileAtCapacityException {
       // 没写进去，界面上的开关也要退回去 —— 否则用户会看到一个"开着"、
       // 实际没有落盘的档案。
       if (mounted) setState(() => _enabled = current.enabled);
       rethrow;
+    } catch (_) {
+      // 新建时 `saveProfile` 已经让频道落盘了；后面任一步失败都必须回滚，
+      // 否则用户点"放弃"回到网格，会发现凭空多了一个频道。
+      if (created && createdProfile != null) {
+        try {
+          await widget.controller.removeProfile(createdProfile.id);
+        } catch (_) {
+          // 回滚失败也保留原始错误；至少不要假装保存成功。
+        }
+      }
+      rethrow;
     } finally {
       _busy = false;
     }
-    await _loadHistorySize();
+    // 草稿刚创建时还没有历史，不需要查盘上大小。
+    if (!widget.isNew) await _loadHistorySize();
     return true;
   }
 
@@ -293,6 +381,7 @@ class ProfileEditorState extends State<ProfileEditor> {
   }
 
   Future<void> _delete() async {
+    if (_deleting) return;
     final l10n = _l10n;
     final ok = await _confirm(
       title: l10n.deleteProfileTitle(widget.profile.displayName),
@@ -300,8 +389,15 @@ class ProfileEditorState extends State<ProfileEditor> {
       action: l10n.delete,
     );
     if (ok != true) return;
-    await widget.controller.removeProfile(widget.profile.id);
-    // 删完由父级换到别的 tab，这里不自作主张 pop
+    setState(() => _deleting = true);
+    try {
+      await widget.controller.removeProfile(widget.profile.id);
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+    if (!mounted) return;
+    // 独立页面里由父级 pop 回频道网格；没给回调时保持原行为（不自作主张）。
+    widget.onDeleted?.call();
   }
 
   Future<void> _createGroupAndSelect() async {
@@ -398,7 +494,8 @@ class ProfileEditorState extends State<ProfileEditor> {
                   ),
                 ),
               ),
-            if (_enabled && !focused) ...[
+            // 草稿还没落盘，不能切过去；只有编辑现有频道时才给这个入口。
+            if (!widget.isNew && _enabled && !focused) ...[
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
@@ -417,39 +514,44 @@ class ProfileEditorState extends State<ProfileEditor> {
             ],
           ],
         ),
-        const SizedBox(height: 16),
-        SettingsSection(
-          title: l10n.historySection,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.historyUsage(formatBytes(_historyBytes)),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+        // 草稿还没有历史：整段都不显示，也不查盘上的大小。
+        if (!widget.isNew) ...[
+          const SizedBox(height: 16),
+          SettingsSection(
+            title: l10n.historySection,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.historyUsage(formatBytes(_historyBytes)),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-                OutlinedButton(
-                  onPressed: _historyBytes == 0 ? null : _clearHistory,
-                  child: Text(l10n.clear),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Center(
-          child: TextButton.icon(
-            onPressed: _delete,
-            icon: const Icon(Icons.delete_outline),
-            label: Text(l10n.deleteProfileAction),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
+                  OutlinedButton(
+                    onPressed: _historyBytes == 0 ? null : _clearHistory,
+                    child: Text(l10n.clear),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+        if (!widget.isNew) ...[
+          const SizedBox(height: 24),
+          Center(
+            child: TextButton.icon(
+              onPressed: _delete,
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l10n.deleteProfileAction),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

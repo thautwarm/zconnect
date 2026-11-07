@@ -81,9 +81,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('档案'), findsOneWidget);
-    await tester.tap(find.text('通用'));
-    await tester.pumpAndSettle();
     expect(find.text('语言'), findsOneWidget);
 
     // 下拉框当前显示“中文”（上面已选成 zh）
@@ -95,7 +92,6 @@ void main() {
 
     expect(locale.locale, const Locale('en'));
     expect(find.text('Language'), findsOneWidget, reason: '这一节标题该跟着变');
-    expect(find.text('General'), findsWidgets);
     expect(find.text('语言'), findsNothing);
 
     final prefs = await SharedPreferences.getInstance();
@@ -109,7 +105,6 @@ void main() {
 
     expect(locale.locale, const Locale('ja'));
     expect(find.text('言語'), findsOneWidget);
-    expect(find.text('一般'), findsWidgets);
     expect(find.text('Language'), findsNothing);
     expect(prefs.getString('ui_locale_v1'), 'ja');
   });

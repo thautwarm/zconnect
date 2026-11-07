@@ -66,7 +66,11 @@ Future<void> _openFleet(WidgetTester tester) async {
 
 Finder _card(String id) => find.byKey(ValueKey('profile-card-$id'));
 Finder _chip(String id) => find.byKey(ValueKey('group-chip-$id'));
+Finder _header(String id) => find.byKey(ValueKey('group-header-$id'));
 Finder _groupMenu(String id) => find.byKey(ValueKey('group-menu-$id'));
+Finder _newCard() => find.byKey(const ValueKey('profile-new-channel-card'));
+Finder _field(String label) =>
+    find.ancestor(of: find.text(label), matching: find.byType(TextField));
 
 /// 三个组 section 在默认 600px 高里会有一部分在视口外，sliver 不会构建。
 /// 这些测试验的是分组结构，不是滚动本身，所以给一个更高的测试视口。
@@ -88,15 +92,27 @@ void main() {
   testWidgets('网格按组 section，组 chip 可以组间切换', (tester) async {
     _useTallView(tester);
     final controller = await _boot();
-    final (work, _) = await _groups(controller);
+    final (work, home) = await _groups(controller);
     addTearDown(controller.dispose);
 
     await _pumpHome(tester, controller);
     await _openFleet(tester);
 
-    expect(find.text('工作'), findsOneWidget);
-    expect(find.text('家庭'), findsOneWidget);
-    expect(find.text('未分组'), findsOneWidget);
+    expect(
+      find.descendant(of: _header(work.id), matching: find.text('工作')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: _header(home.id), matching: find.text('家庭')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: _header('__ungrouped__'),
+        matching: find.text('未分组'),
+      ),
+      findsOneWidget,
+    );
     expect(_card('p_a'), findsOneWidget);
     expect(_card('p_b'), findsOneWidget);
     expect(_card('p_c'), findsOneWidget);
@@ -107,7 +123,7 @@ void main() {
     expect(_card('p_a'), findsOneWidget);
     expect(_card('p_b'), findsNothing);
     expect(_card('p_c'), findsNothing);
-    expect(find.text('家庭'), findsNothing, reason: '筛选后不该还显示别的组');
+    expect(_header(home.id), findsNothing, reason: '筛选后不该还显示别的组');
 
     await tester.tap(_chip('__all__'));
     await _settle(tester);
@@ -115,10 +131,89 @@ void main() {
     expect(_card('p_c'), findsOneWidget);
   });
 
-  testWidgets('搜索跨组；清空后恢复原来的组筛选', (tester) async {
+  testWidgets('分组 chip 和标题的频道数量都用独立 badge 展示', (tester) async {
     _useTallView(tester);
     final controller = await _boot();
     final (work, _) = await _groups(controller);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    final chip = _chip(work.id);
+    final chipBadge = find.byKey(ValueKey('group-chip-count-${work.id}'));
+    final headerBadge = find.byKey(
+      ValueKey('group-header-count-${work.id}'),
+    );
+    expect(chip, findsOneWidget);
+    expect(chipBadge, findsOneWidget, reason: 'chip 数量应该是 badge');
+    expect(headerBadge, findsOneWidget, reason: '组标题数量也应该是 badge');
+    expect(
+      find.descendant(of: chipBadge, matching: find.text('1')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: headerBadge, matching: find.text('1')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('工作 1'),
+      findsNothing,
+      reason: '组名和数量不能在同一个纯文本标签里，否则看着像标题',
+    );
+  });
+
+  testWidgets('＋卡片只在全部/未分组视图显示，特定分组筛选时隐藏', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot();
+    final (work, _) = await _groups(controller);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    expect(_newCard(), findsOneWidget, reason: '全部视图显示未分组末尾的＋卡片');
+
+    await tester.tap(_chip(work.id));
+    await _settle(tester);
+    expect(_newCard(), findsNothing, reason: '特定分组用组菜单新建，不显示＋卡片');
+
+    await tester.tap(_chip('__ungrouped__'));
+    await _settle(tester);
+    expect(_card('p_c'), findsOneWidget);
+    expect(_newCard(), findsOneWidget);
+  });
+
+  testWidgets('未分组为空时仍显示＋卡片，且不计入数量', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot();
+    final work = await controller.createGroup('工作');
+    for (final id in ['p_a', 'p_b', 'p_c']) {
+      await controller.assignProfileGroup(id, work.id);
+    }
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    expect(_newCard(), findsOneWidget, reason: '未分组为空也要保留持续可见的新建入口');
+    final header = find.byKey(const ValueKey('group-header-__ungrouped__'));
+    expect(
+      find.descendant(of: header, matching: find.text('0')),
+      findsOneWidget,
+      reason: '＋卡片不算频道数量',
+    );
+
+    await tester.tap(_chip('__ungrouped__'));
+    await _settle(tester);
+    expect(_newCard(), findsOneWidget);
+    expect(find.text('这个分组里还没有频道'), findsNothing);
+  });
+
+  testWidgets('搜索跨组；清空后恢复原来的组筛选', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot();
+    final (work, home) = await _groups(controller);
     addTearDown(controller.dispose);
 
     await _pumpHome(tester, controller);
@@ -133,7 +228,10 @@ void main() {
     await _enterSearch(tester, 'B');
     expect(_card('p_b'), findsOneWidget);
     expect(_card('p_a'), findsNothing);
-    expect(find.text('家庭'), findsOneWidget);
+    expect(
+      find.descendant(of: _header(home.id), matching: find.text('家庭')),
+      findsOneWidget,
+    );
 
     // 清空搜索 → 回到之前选中的"工作"。
     await _enterSearch(tester, '');
@@ -177,7 +275,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.profileGroups.map((g) => g.name), contains('新组'));
-    expect(find.text('这个分组里还没有档案'), findsOneWidget);
+    expect(find.text('这个分组里还没有频道'), findsOneWidget);
   });
 
   testWidgets('组菜单可以改名、上移、删除', (tester) async {
@@ -228,6 +326,45 @@ void main() {
     expect(find.text('已删除分组 公司，成员回到未分组'), findsOneWidget);
   });
 
+  testWidgets('分组菜单第一项是新建频道，保存后归入该组', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot();
+    final (work, _) = await _groups(controller);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    await tester.tap(_groupMenu(work.id));
+    await tester.pumpAndSettle();
+
+    final create = find.byKey(const ValueKey('group-menu-create'));
+    final rename = find.byKey(const ValueKey('group-menu-rename'));
+    expect(create, findsOneWidget);
+    expect(
+      tester.getCenter(create).dy,
+      lessThan(tester.getCenter(rename).dy),
+      reason: '「新建频道」应该是分组菜单第一项',
+    );
+
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+
+    expect(find.text('频道设置'), findsOneWidget);
+    expect(controller.config.profiles.length, 3, reason: '打开新建页只是草稿，不能立刻创建');
+
+    await tester.enterText(_field('名字'), '分组新频道');
+    await tester.pump();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(controller.config.profiles.length, 4);
+    final created = controller.config.profiles.last;
+    expect(created.name, '分组新频道');
+    expect(controller.groupIdOf(created.id), work.id, reason: '预设来源分组');
+    expect(controller.config.focusedProfileId, 'p_a', reason: '新建频道不自动切换当前频道');
+  });
+
   testWidgets('选一个空组时显示该组的空态，不是全屏空态', (tester) async {
     _useTallView(tester);
     final controller = await _boot();
@@ -251,8 +388,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // 新建后自动切到空组：能看到组标题和空态。
-    expect(find.text('空组'), findsOneWidget);
-    expect(find.text('这个分组里还没有档案'), findsOneWidget);
+    final group = controller.profileGroups.singleWhere((g) => g.name == '空组');
+    expect(
+      find.descendant(of: _header(group.id), matching: find.text('空组')),
+      findsOneWidget,
+    );
+    expect(find.text('这个分组里还没有频道'), findsOneWidget);
   });
 
   testWidgets('有多个分组时也会滚到后面的当前聚焦卡片', (tester) async {
@@ -293,14 +434,14 @@ void main() {
     // 当前聚焦是 B，但点 A 的菜单必须打开 A。
     await tester.tap(find.byKey(const ValueKey('profile-menu-p_a')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('编辑档案'));
+    await tester.tap(find.text('编辑频道'));
     await tester.pumpAndSettle();
 
-    expect(find.text('配置'), findsOneWidget);
+    expect(find.text('频道设置'), findsOneWidget);
     expect(find.text('p_a'), findsOneWidget, reason: '编辑的是 A，不是当前聚焦的 B');
     expect(find.text('p_b'), findsNothing);
 
-    Navigator.of(tester.element(find.text('配置'))).pop();
+    Navigator.of(tester.element(find.text('频道设置'))).pop();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('profile-panel')), findsOneWidget);
   });
@@ -321,9 +462,7 @@ void main() {
 
     final dialog = find.byType(SimpleDialog);
     expect(dialog, findsOneWidget);
-    await tester.tap(
-      find.descendant(of: dialog, matching: find.text('工作')),
-    );
+    await tester.tap(find.descendant(of: dialog, matching: find.text('工作')));
     await tester.pumpAndSettle();
 
     expect(controller.groupIdOf('p_a'), work.id);

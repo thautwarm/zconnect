@@ -1801,7 +1801,7 @@ class ConversationController extends ChangeNotifier {
     final stranded = _speakQueue?.pendingCount ?? 0;
     if (stranded > 0) {
       _speakQueue?.clear();
-      _append('切档案：丢掉还没上传的 $stranded 句');
+      _append('切频道：丢掉还没上传的 $stranded 句');
     }
 
     if (!_active) {
@@ -1822,7 +1822,7 @@ class ConversationController extends ChangeNotifier {
         account.heardMs,
         account.discarded,
         account.unheardText,
-        '切换档案，停掉正在播的语音',
+        '切换频道，停掉正在播的语音',
         target: leaving,
       );
       // 用户切回来会看到文字却想不起当时没听完，留一行痕。
@@ -1838,7 +1838,7 @@ class ConversationController extends ChangeNotifier {
     final unheard = account.unheardText?.trim();
     if (unheard == null || unheard.isEmpty) return;
     _appendUnheard(unheard, leaving);
-    _append('切档案：有一段只有文字、没听到 —— 下次上传时告诉 brain');
+    _append('切频道：有一段只有文字、没听到 —— 下次上传时告诉 brain');
   }
 
   /// 把按比例估出来的字符位置换算成"第一个没听到的字"。

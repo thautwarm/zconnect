@@ -42,6 +42,20 @@ class _HomePageState extends State<HomePage> {
   /// 换的是另一屏历史，和上一个档案的 seq 没有可比性。
   String? _lastFocusedId;
 
+  /// 切了频道、还没把消息流校正到新频道底部。
+  ///
+  /// 新频道的历史是**异步**读进来的：切过去的那一帧可能还是空列表，
+  /// 这时 `_scroll` 根本没有 viewport。所以不能只在切换的那一帧跳一次，
+  /// 而要一直记着这件事，等历史落地后的下一次 build 再校正。
+  bool _pendingBottomCorrection = false;
+
+  /// 打开频道网格时的滚动位置，以及那时聚焦的频道。
+  ///
+  /// 网格会替换掉消息流（ListView 被销毁），关闭时如果频道没变，要把
+  /// 原来的位置放回去；频道变了则由 [_pendingBottomCorrection] 负责到底。
+  double? _fleetAnchorOffset;
+  String? _fleetAnchorFocusId;
+
   /// 正在往前面插更早的历史。这期间**绝对不能**自动滚到底，
   /// 否则"用户正在往上翻，后台档案来了条消息"就会把人弹回去。
   bool _loadingEarlier = false;
@@ -188,13 +202,69 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 换档案时跳到新那屏的底部。
+  ///
+  /// 只记下"欠一次到底"，真正跳的动作在 [_maybeCorrectToBottom] 里。
+  /// 切换当下新档案的历史通常还没读出来（空态、甚至没有 ListView），
+  /// 那一帧跳不了；等历史落地后 build 会再来一次。
   void _syncFocusedProfile(String id) {
     if (id == _lastFocusedId) return;
     _lastFocusedId = id;
     _seenLastSeq = 0;
+    _pendingBottomCorrection = true;
+  }
+
+  /// 把欠下的"切换频道后回到底部"补上。
+  ///
+  /// 必须等到历史读完（[ConversationController.historyLoaded]）才清掉标记：
+  /// 历史插进来会让内容变高，早清的话会停在"先到过一次底、随后被新历史
+  /// 撑高"的中间位置。历史还没到时如果已经有列表，也先贴到底，避免用旧
+  /// 频道的位置显示新频道。
+  void _maybeCorrectToBottom() {
+    if (!_pendingBottomCorrection) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pendingBottomCorrection) return;
+      // 周期里又切走了：这时的底部属于另一个频道，交给下一次校正。
+      if (_lastFocusedId != widget.controller.config.focusedProfileId) return;
+
+      final historyLoaded = widget.controller.historyLoaded;
+      final messages = widget.controller.messages;
+
+      if (!_scroll.hasClients) {
+        // 新频道还空着（历史没读出来，或者本来就没有历史）—— 空列表没有
+        // 可挂的 viewport，底部就是顶部。历史没读完时保留标记，等它落地。
+        if (historyLoaded && messages.isEmpty) {
+          _pendingBottomCorrection = false;
+        }
+        return;
+      }
+
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      // 历史已经落地，这一次就是最终位置；否则等下一次 build 再校正。
+      if (historyLoaded) _pendingBottomCorrection = false;
+    });
+  }
+
+  /// 打开频道网格前记下当前消息位置。只开关网格、没切频道时要回到这里。
+  void _openFleet() {
+    _fleetAnchorOffset = _scroll.hasClients ? _scroll.position.pixels : null;
+    _fleetAnchorFocusId = widget.controller.config.focusedProfileId;
+    setState(() => _fleetExpanded = true);
+  }
+
+  /// 关闭频道网格。频道没变就恢复打开前的位置；变了则滚到新频道底部。
+  void _closeFleet() {
+    final restore =
+        _fleetAnchorFocusId == widget.controller.config.focusedProfileId
+        ? _fleetAnchorOffset
+        : null;
+    setState(() => _fleetExpanded = false);
+    if (restore == null) return;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
-      _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      _scroll.jumpTo(
+        restore.clamp(0.0, _scroll.position.maxScrollExtent),
+      );
     });
   }
 
@@ -215,12 +285,12 @@ class _HomePageState extends State<HomePage> {
     final compactBar = ProfileCompactBar(
       controller: controller,
       avatarOf: _avatarFor,
-      onOpen: () => setState(() => _fleetExpanded = true),
+      onOpen: _openFleet,
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Zconnect'),
+        title: const Text('Z Connect'),
         centerTitle: false,
         actions: [
           IconButton(
@@ -249,7 +319,7 @@ class _HomePageState extends State<HomePage> {
             ? ProfileGridPanel(
                 controller: controller,
                 avatarOf: _avatarFor,
-                onClose: () => setState(() => _fleetExpanded = false),
+                onClose: _closeFleet,
               )
             : AnimatedBuilder(
                 animation: controller,
@@ -258,6 +328,7 @@ class _HomePageState extends State<HomePage> {
                 builder: (context, compactBar) {
                   _maybeAutoScroll(controller.lastSeq);
                   _syncFocusedProfile(controller.config.focusedProfileId);
+                  _maybeCorrectToBottom();
                   final hasOpen =
                       controller.config.focusedProfile?.enabled ?? false;
 
@@ -737,7 +808,9 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  // 正文可选：手机长按、桌面拖选/右键都能走系统选择菜单。
+                  // 时间戳仍是普通 Text，不参与选择。
+                  SelectableText(
                     message.text,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: foreground,

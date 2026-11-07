@@ -28,7 +28,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get tabProfiles => 'Profiles';
+  String get channelSettingsTitle => 'Channel settings';
+
+  @override
+  String get newChannelName => 'New channel';
+
+  @override
+  String get discardChangesTitle => 'Discard unsaved changes?';
+
+  @override
+  String get discardChangesBody =>
+      'Your changes on this page will be lost if you leave.';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get tabProfiles => 'Channels';
 
   @override
   String get tabGeneral => 'General';
@@ -58,7 +74,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileGoneUnsaved =>
-      'This profile no longer exists. Nothing was saved.';
+      'This channel no longer exists. Nothing was saved.';
 
   @override
   String get noAppToOpenPage => 'No app can open this page.';
@@ -86,19 +102,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String saveFailedBeforeSwitch(String error) {
-    return 'Couldn\'t save; profile not switched: $error';
+    return 'Couldn\'t save; channel not switched: $error';
   }
 
   @override
   String saveFailedBeforeAdd(String error) {
-    return 'Couldn\'t save; profile not created: $error';
+    return 'Couldn\'t save; channel not created: $error';
   }
 
   @override
-  String get newProfile => 'New profile';
+  String get newProfile => 'New channel';
 
   @override
-  String get newProfileTooltip => 'New profile';
+  String get newProfileTooltip => 'New channel';
 
   @override
   String get profileDisabled => 'Off';
@@ -108,7 +124,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localSegmentationBody =>
-      'Silero VAD runs on the phone and only finished utterances are uploaded.\nThese settings are global; switching profiles does not reload the model.';
+      'Silero VAD runs on the phone and only finished utterances are uploaded.\nThese settings are global; switching channels does not reload the model.';
 
   @override
   String get vadMinSilenceMsLabel => 'Silence threshold (ms)';
@@ -192,7 +208,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Recognition and synthesis run on the brain. The phone only captures, segments, uploads, and plays.\nThe history stored here is for display, not conversation context. Deleting it does not affect the brain\'s memory.';
 
   @override
-  String get profileAppearance => 'Profile appearance';
+  String get profileAppearance => 'Channel appearance';
 
   @override
   String get nameLabel => 'Name';
@@ -238,7 +254,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get brainIdHint =>
-      'e.g. Employee 3. A meaningful name, just like the profile name';
+      'e.g. Employee 3. A meaningful name, just like the channel name';
 
   @override
   String get tokenLabel => 'Bearer token';
@@ -263,10 +279,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get focusedDisabledWarning =>
-      'This is the profile selected on the main screen. Saving will switch to another enabled profile.';
+      'This is the channel selected on the main screen. Saving will switch to another enabled channel.';
 
   @override
-  String get switchToThisProfile => 'Switch to this profile';
+  String get switchToThisProfile => 'Switch to this channel';
 
   @override
   String get switchBySwipeHint =>
@@ -281,11 +297,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clearHistoryTitle => 'Clear this profile\'s history?';
+  String get clearHistoryTitle => 'Clear this channel\'s history?';
 
   @override
   String get clearHistoryBody =>
-      'Messages for this profile will disappear from the main screen and cannot be recovered.\n\nThe brain is unaffected: the local copy is display history, while conversation context lives on the brain_id.';
+      'Messages for this channel will disappear from the main screen and cannot be recovered.\n\nThe brain is unaffected: the local copy is display history, while conversation context lives on the brain_id.';
 
   @override
   String get historyCleared => 'Cleared';
@@ -297,10 +313,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteProfileBody =>
-      'This profile\'s brain settings and accent color will be removed.\n\nHistory on disk is kept, so an accidental delete does not lose it.';
+      'This channel\'s brain settings and accent color will be removed.\n\nHistory on disk is kept, so an accidental delete does not lose it.';
 
   @override
-  String get deleteProfileAction => 'Delete this profile';
+  String get deleteProfileAction => 'Delete this channel';
 
   @override
   String get chooseAvatar => 'Choose avatar';
@@ -548,11 +564,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'No events yet. Go back, tap the button, speak, and entries will appear here.';
 
   @override
-  String get noEnabledProfiles => 'No enabled profiles';
+  String get noEnabledProfiles => 'No enabled channels';
 
   @override
   String get noEnabledProfilesBody =>
-      'Create one in settings, or enable the existing profile';
+      'Create one in settings, or enable the existing channel';
 
   @override
   String switchToProfile(String name) {
@@ -560,10 +576,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get previousProfile => 'Previous profile';
+  String get previousProfile => 'Previous channel';
 
   @override
-  String get nextProfile => 'Next profile';
+  String get nextProfile => 'Next channel';
 
   @override
   String get micAfterAec => 'Microphone (after AEC)';
@@ -697,11 +713,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get micSettingsPath =>
-      'System Settings → Privacy & Security → Microphone → enable Zconnect';
+      'System Settings → Privacy & Security → Microphone → enable Z Connect';
 
   @override
   String get localNetworkSettingsPath =>
-      'System Settings → Privacy & Security → Local Network → enable Zconnect';
+      'System Settings → Privacy & Security → Local Network → enable Z Connect';
 
   @override
   String get continueBlocked =>
@@ -714,7 +730,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skipCurrentSpeechTooltip => 'Skip the line currently playing';
 
   @override
-  String get profilesTitle => 'Profiles';
+  String get profilesTitle => 'Channels';
 
   @override
   String profilesOpenCount(int open, int total) {
@@ -722,7 +738,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profilePanelClose => 'Back to chat';
+  String get profilePanelClose => 'Back to messages';
 
   @override
   String get profileCurrent => 'Current';
@@ -785,12 +801,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String profileAtCapacity(int max) {
-    return 'At most $max profiles can be open at once. Close one first.';
+    return 'At most $max channels can be open at once. Close one first.';
   }
 
   @override
   String profileOverLimit(int open, int max) {
-    return '$open profiles are open, above the limit of $max. Close some.';
+    return '$open channels are open, above the limit of $max. Close some.';
   }
 
   @override
@@ -819,6 +835,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileNewGroup => 'New group';
 
   @override
+  String get profileNewChannel => 'New channel';
+
+  @override
   String get profileGroupNameLabel => 'Group name';
 
   @override
@@ -841,7 +860,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String profileGroupDeleted(String name) {
-    return 'Deleted group $name. Its profiles are now ungrouped.';
+    return 'Deleted group $name. Its channels are now ungrouped.';
   }
 
   @override
@@ -855,25 +874,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profileGroupEmpty => 'No profiles in this group yet';
+  String get profileGroupEmpty => 'No channels in this group yet';
 
   @override
   String get profileAllGroups => 'All';
 
   @override
-  String get profileSearchHint => 'Search profiles';
+  String get profileSearchHint => 'Search channels';
 
   @override
-  String get profileSearchEmpty => 'No matching profiles';
+  String get profileSearchEmpty => 'No matching channels';
 
   @override
   String get profileGroupMenuTooltip => 'Group actions';
 
   @override
-  String get profileCardActions => 'Profile actions';
+  String get profileCardActions => 'Channel actions';
 
   @override
-  String get profileCardEdit => 'Edit profile';
+  String get profileCardEdit => 'Edit channel';
 
   @override
   String get profileCardMoveGroup => 'Move to group';
@@ -899,4 +918,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileGroupDragHint => 'Long-press a group title to reorder';
+
+  @override
+  String get profileBackToMessages => 'Back to messages';
 }

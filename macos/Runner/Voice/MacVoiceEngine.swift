@@ -175,7 +175,7 @@ final class MacVoiceEngine {
     lastMicBufferAt = CACurrentMediaTime()
     lastPermissionCheckAt = CACurrentMediaTime()
     micActivity = ProcessInfo.processInfo.beginActivity(
-      options: .userInitiated, reason: "Zconnect voice session")
+      options: .userInitiated, reason: "Z Connect voice session")
     refreshSleepGuard()
     startLevelsTimer()
     installConfigObserver()
@@ -403,7 +403,7 @@ final class MacVoiceEngine {
     if sleepGuard == nil {
       sleepGuard = ProcessInfo.processInfo.beginActivity(
         options: [.userInitiated, .idleSystemSleepDisabled],
-        reason: "Zconnect conversation")
+        reason: "Z Connect conversation")
     }
     sleepGuardTimer?.invalidate()
     sleepGuardTimer = Timer.scheduledTimer(

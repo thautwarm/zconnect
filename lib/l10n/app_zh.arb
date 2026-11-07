@@ -6,7 +6,12 @@
   "clear": "清空",
   "cancel": "算了",
   "settingsTitle": "配置",
-  "tabProfiles": "档案",
+  "channelSettingsTitle": "频道设置",
+  "newChannelName": "新频道",
+  "discardChangesTitle": "放弃未保存的修改？",
+  "discardChangesBody": "离开后，这次在频道设置里做的改动都不会保存。",
+  "discard": "放弃",
+  "tabProfiles": "频道",
   "tabGeneral": "通用",
   "languageSection": "语言",
   "languageFollowSystem": "跟随系统",
@@ -20,7 +25,7 @@
       "error": {"type": "String"}
     }
   },
-  "profileGoneUnsaved": "这个档案已经不在了，改动没有保存",
+  "profileGoneUnsaved": "这个频道已经不在了，改动没有保存",
   "noAppToOpenPage": "没找到能打开网页的应用",
   "openPageFailed": "打开网页失败：{error}",
   "@openPageFailed": {
@@ -54,11 +59,11 @@
       "error": {"type": "String"}
     }
   },
-  "newProfile": "新档案",
-  "newProfileTooltip": "新建档案",
+  "newProfile": "新频道",
+  "newProfileTooltip": "新建频道",
   "profileDisabled": "已关闭",
   "localSegmentation": "本地断句",
-  "localSegmentationBody": "在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换档案不会重新加载模型。",
+  "localSegmentationBody": "在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换频道不会重新加载模型。",
   "vadMinSilenceMsLabel": "静音判定 (ms)",
   "vadMinSilenceMsHint": "700 —— 最重要的一项。调小更跟手，太小会切断句内停顿",
   "vadThresholdLabel": "语音概率阈值",
@@ -83,7 +88,7 @@
   "volumeKeyClearsQueue": "音量减键清空队列",
   "volumeKeySubtitle": "开着：AI 说话时按音量减让它闭嘴（仅前台）。\n后台和锁屏用通知栏的「停止说话」。",
   "settingsNotice": "识别和合成在 brain 那边，手机只负责采集、切句、上传、播放。\n本机保存的是展示用的历史，不是对话上下文；删掉它不影响 brain 那边的记忆。",
-  "profileAppearance": "这个档案长什么样",
+  "profileAppearance": "这个频道长什么样",
   "nameLabel": "名字",
   "nameHint": "例如 员工3 —— 留空就用 brain_id",
   "themeColor": "主题色",
@@ -105,8 +110,8 @@
   "enabled": "启用",
   "enabledSubtitleOn": "会一直收它的消息（没聚焦时只记文字，不出声）",
   "enabledSubtitleOff": "不连它。历史仍然留在盘上，随时可以再打开",
-  "focusedDisabledWarning": "它现在是主界面上选中的那个。保存之后会自动切到别的开着的档案。",
-  "switchToThisProfile": "切到这个档案",
+  "focusedDisabledWarning": "它现在是主界面上选中的那个。保存之后会自动切到别的开着的频道。",
+  "switchToThisProfile": "切到这个频道",
   "switchBySwipeHint": "主界面上左右滑说话按钮也能切",
   "historySection": "历史",
   "historyUsage": "盘上占 {size}。\n永久保留，没有自动清理 —— 攒到几百 MB 就自己来这里清。",
@@ -115,8 +120,8 @@
       "size": {"type": "String"}
     }
   },
-  "clearHistoryTitle": "清空这个档案的历史？",
-  "clearHistoryBody": "主界面上这个档案的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。",
+  "clearHistoryTitle": "清空这个频道的历史？",
+  "clearHistoryBody": "主界面上这个频道的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。",
   "historyCleared": "已清空",
   "deleteProfileTitle": "删掉「{name}」？",
   "@deleteProfileTitle": {
@@ -124,8 +129,8 @@
       "name": {"type": "String"}
     }
   },
-  "deleteProfileBody": "这个档案的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。",
-  "deleteProfileAction": "删除这个档案",
+  "deleteProfileBody": "这个频道的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。",
+  "deleteProfileAction": "删除这个频道",
   "chooseAvatar": "选头像",
   "changeAvatar": "换头像",
   "removeAvatar": "去掉",
@@ -221,7 +226,7 @@
   "speakerphoneHint": "setSpeakerphoneOn —— 可热切，不必重启",
   "eventLog": "事件日志",
   "noEvents": "还没有事件。回主界面点一下按钮，说话之后这里会有东西。",
-  "noEnabledProfiles": "没有启用的档案",
+  "noEnabledProfiles": "没有启用的频道",
   "noEnabledProfilesBody": "去配置里新建一个，或者把原来那个打开",
   "switchToProfile": "切到{name}",
   "@switchToProfile": {
@@ -229,8 +234,8 @@
       "name": {"type": "String"}
     }
   },
-  "previousProfile": "上一个档案",
-  "nextProfile": "下一个档案",
+  "previousProfile": "上一个频道",
+  "nextProfile": "下一个频道",
   "micAfterAec": "麦克风 (AEC 后)",
   "playbackOutput": "播放输出",
   "silent": "静默",
@@ -282,12 +287,12 @@
     }
   },
   "invalidBrainUrl": "地址要以 http:// 或 https:// 开头",
-  "micSettingsPath": "系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect",
-  "localNetworkSettingsPath": "系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect",
+  "micSettingsPath": "系统设置 → 隐私与安全性 → 麦克风 → 打开 Z Connect",
+  "localNetworkSettingsPath": "系统设置 → 隐私与安全性 → 本地网络 → 打开 Z Connect",
   "continueBlocked": "麦克风、brain 地址和本地网络都通过之后才能继续",
   "skipCurrentSpeech": "跳过",
   "skipCurrentSpeechTooltip": "跳过正在播放的这句话",
-  "profilesTitle": "档案",
+  "profilesTitle": "频道",
   "profilesOpenCount": "{open}/{total} 已打开",
   "@profilesOpenCount": {
     "placeholders": {
@@ -295,7 +300,7 @@
       "total": {"type": "int"}
     }
   },
-  "profilePanelClose": "回到对话",
+  "profilePanelClose": "回到消息",
   "profileCurrent": "当前",
   "profileStatusClosed": "已关闭",
   "profileStatusUnconfigured": "未配置 brain",
@@ -377,6 +382,7 @@
   "profileUngrouped": "未分组",
   "profileUntitledGroup": "未命名分组",
   "profileNewGroup": "新建分组",
+  "profileNewChannel": "新建频道",
   "profileGroupNameLabel": "分组名称",
   "profileGroupNameHint": "例如：工作",
   "profileGroupCreate": "创建",
@@ -402,13 +408,13 @@
       "name": {"type": "String"}
     }
   },
-  "profileGroupEmpty": "这个分组里还没有档案",
+  "profileGroupEmpty": "这个分组里还没有频道",
   "profileAllGroups": "全部",
-  "profileSearchHint": "搜索档案",
-  "profileSearchEmpty": "没有匹配的档案",
+  "profileSearchHint": "搜索频道",
+  "profileSearchEmpty": "没有匹配的频道",
   "profileGroupMenuTooltip": "分组操作",
-  "profileCardActions": "档案操作",
-  "profileCardEdit": "编辑档案",
+  "profileCardActions": "频道操作",
+  "profileCardEdit": "编辑频道",
   "profileCardMoveGroup": "移动到分组",
   "profileMoveToGroupTitle": "移动到分组",
   "profileMoveToGroupNew": "新建分组…",
@@ -426,5 +432,6 @@
     }
   },
   "profileDragHint": "长按拖动排序",
-  "profileGroupDragHint": "长按分组标题调整顺序"
+  "profileGroupDragHint": "长按分组标题调整顺序",
+  "profileBackToMessages": "回到消息"
 }

@@ -1,11 +1,11 @@
 {
-    "name": "Zconnect",
-    "short_name": "Zconnect",
+    "name": "Z Connect",
+    "short_name": "Z Connect",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Zconnect: a self-hosted real-time voice assistant client.",
+    "description": "Z Connect: a self-hosted real-time voice assistant client.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -136,10 +136,40 @@ abstract class AppLocalizations {
   /// **'配置'**
   String get settingsTitle;
 
+  /// No description provided for @channelSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'频道设置'**
+  String get channelSettingsTitle;
+
+  /// No description provided for @newChannelName.
+  ///
+  /// In zh, this message translates to:
+  /// **'新频道'**
+  String get newChannelName;
+
+  /// No description provided for @discardChangesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'放弃未保存的修改？'**
+  String get discardChangesTitle;
+
+  /// No description provided for @discardChangesBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'离开后，这次在频道设置里做的改动都不会保存。'**
+  String get discardChangesBody;
+
+  /// No description provided for @discard.
+  ///
+  /// In zh, this message translates to:
+  /// **'放弃'**
+  String get discard;
+
   /// No description provided for @tabProfiles.
   ///
   /// In zh, this message translates to:
-  /// **'档案'**
+  /// **'频道'**
   String get tabProfiles;
 
   /// No description provided for @tabGeneral.
@@ -193,7 +223,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileGoneUnsaved.
   ///
   /// In zh, this message translates to:
-  /// **'这个档案已经不在了，改动没有保存'**
+  /// **'这个频道已经不在了，改动没有保存'**
   String get profileGoneUnsaved;
 
   /// No description provided for @noAppToOpenPage.
@@ -247,13 +277,13 @@ abstract class AppLocalizations {
   /// No description provided for @newProfile.
   ///
   /// In zh, this message translates to:
-  /// **'新档案'**
+  /// **'新频道'**
   String get newProfile;
 
   /// No description provided for @newProfileTooltip.
   ///
   /// In zh, this message translates to:
-  /// **'新建档案'**
+  /// **'新建频道'**
   String get newProfileTooltip;
 
   /// No description provided for @profileDisabled.
@@ -271,7 +301,7 @@ abstract class AppLocalizations {
   /// No description provided for @localSegmentationBody.
   ///
   /// In zh, this message translates to:
-  /// **'在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换档案不会重新加载模型。'**
+  /// **'在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换频道不会重新加载模型。'**
   String get localSegmentationBody;
 
   /// No description provided for @vadMinSilenceMsLabel.
@@ -421,7 +451,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileAppearance.
   ///
   /// In zh, this message translates to:
-  /// **'这个档案长什么样'**
+  /// **'这个频道长什么样'**
   String get profileAppearance;
 
   /// No description provided for @nameLabel.
@@ -553,13 +583,13 @@ abstract class AppLocalizations {
   /// No description provided for @focusedDisabledWarning.
   ///
   /// In zh, this message translates to:
-  /// **'它现在是主界面上选中的那个。保存之后会自动切到别的开着的档案。'**
+  /// **'它现在是主界面上选中的那个。保存之后会自动切到别的开着的频道。'**
   String get focusedDisabledWarning;
 
   /// No description provided for @switchToThisProfile.
   ///
   /// In zh, this message translates to:
-  /// **'切到这个档案'**
+  /// **'切到这个频道'**
   String get switchToThisProfile;
 
   /// No description provided for @switchBySwipeHint.
@@ -583,13 +613,13 @@ abstract class AppLocalizations {
   /// No description provided for @clearHistoryTitle.
   ///
   /// In zh, this message translates to:
-  /// **'清空这个档案的历史？'**
+  /// **'清空这个频道的历史？'**
   String get clearHistoryTitle;
 
   /// No description provided for @clearHistoryBody.
   ///
   /// In zh, this message translates to:
-  /// **'主界面上这个档案的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。'**
+  /// **'主界面上这个频道的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。'**
   String get clearHistoryBody;
 
   /// No description provided for @historyCleared.
@@ -607,13 +637,13 @@ abstract class AppLocalizations {
   /// No description provided for @deleteProfileBody.
   ///
   /// In zh, this message translates to:
-  /// **'这个档案的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。'**
+  /// **'这个频道的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。'**
   String get deleteProfileBody;
 
   /// No description provided for @deleteProfileAction.
   ///
   /// In zh, this message translates to:
-  /// **'删除这个档案'**
+  /// **'删除这个频道'**
   String get deleteProfileAction;
 
   /// No description provided for @chooseAvatar.
@@ -1069,7 +1099,7 @@ abstract class AppLocalizations {
   /// No description provided for @noEnabledProfiles.
   ///
   /// In zh, this message translates to:
-  /// **'没有启用的档案'**
+  /// **'没有启用的频道'**
   String get noEnabledProfiles;
 
   /// No description provided for @noEnabledProfilesBody.
@@ -1087,13 +1117,13 @@ abstract class AppLocalizations {
   /// No description provided for @previousProfile.
   ///
   /// In zh, this message translates to:
-  /// **'上一个档案'**
+  /// **'上一个频道'**
   String get previousProfile;
 
   /// No description provided for @nextProfile.
   ///
   /// In zh, this message translates to:
-  /// **'下一个档案'**
+  /// **'下一个频道'**
   String get nextProfile;
 
   /// No description provided for @micAfterAec.
@@ -1339,13 +1369,13 @@ abstract class AppLocalizations {
   /// No description provided for @micSettingsPath.
   ///
   /// In zh, this message translates to:
-  /// **'系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect'**
+  /// **'系统设置 → 隐私与安全性 → 麦克风 → 打开 Z Connect'**
   String get micSettingsPath;
 
   /// No description provided for @localNetworkSettingsPath.
   ///
   /// In zh, this message translates to:
-  /// **'系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect'**
+  /// **'系统设置 → 隐私与安全性 → 本地网络 → 打开 Z Connect'**
   String get localNetworkSettingsPath;
 
   /// No description provided for @continueBlocked.
@@ -1369,7 +1399,7 @@ abstract class AppLocalizations {
   /// No description provided for @profilesTitle.
   ///
   /// In zh, this message translates to:
-  /// **'档案'**
+  /// **'频道'**
   String get profilesTitle;
 
   /// No description provided for @profilesOpenCount.
@@ -1381,7 +1411,7 @@ abstract class AppLocalizations {
   /// No description provided for @profilePanelClose.
   ///
   /// In zh, this message translates to:
-  /// **'回到对话'**
+  /// **'回到消息'**
   String get profilePanelClose;
 
   /// No description provided for @profileCurrent.
@@ -1528,6 +1558,12 @@ abstract class AppLocalizations {
   /// **'新建分组'**
   String get profileNewGroup;
 
+  /// No description provided for @profileNewChannel.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建频道'**
+  String get profileNewChannel;
+
   /// No description provided for @profileGroupNameLabel.
   ///
   /// In zh, this message translates to:
@@ -1591,7 +1627,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileGroupEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'这个分组里还没有档案'**
+  /// **'这个分组里还没有频道'**
   String get profileGroupEmpty;
 
   /// No description provided for @profileAllGroups.
@@ -1603,13 +1639,13 @@ abstract class AppLocalizations {
   /// No description provided for @profileSearchHint.
   ///
   /// In zh, this message translates to:
-  /// **'搜索档案'**
+  /// **'搜索频道'**
   String get profileSearchHint;
 
   /// No description provided for @profileSearchEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'没有匹配的档案'**
+  /// **'没有匹配的频道'**
   String get profileSearchEmpty;
 
   /// No description provided for @profileGroupMenuTooltip.
@@ -1621,13 +1657,13 @@ abstract class AppLocalizations {
   /// No description provided for @profileCardActions.
   ///
   /// In zh, this message translates to:
-  /// **'档案操作'**
+  /// **'频道操作'**
   String get profileCardActions;
 
   /// No description provided for @profileCardEdit.
   ///
   /// In zh, this message translates to:
-  /// **'编辑档案'**
+  /// **'编辑频道'**
   String get profileCardEdit;
 
   /// No description provided for @profileCardMoveGroup.
@@ -1671,6 +1707,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'长按分组标题调整顺序'**
   String get profileGroupDragHint;
+
+  /// No description provided for @profileBackToMessages.
+  ///
+  /// In zh, this message translates to:
+  /// **'回到消息'**
+  String get profileBackToMessages;
 }
 
 class _AppLocalizationsDelegate

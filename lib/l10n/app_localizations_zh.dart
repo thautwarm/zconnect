@@ -28,7 +28,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTitle => '配置';
 
   @override
-  String get tabProfiles => '档案';
+  String get channelSettingsTitle => '频道设置';
+
+  @override
+  String get newChannelName => '新频道';
+
+  @override
+  String get discardChangesTitle => '放弃未保存的修改？';
+
+  @override
+  String get discardChangesBody => '离开后，这次在频道设置里做的改动都不会保存。';
+
+  @override
+  String get discard => '放弃';
+
+  @override
+  String get tabProfiles => '频道';
 
   @override
   String get tabGeneral => '通用';
@@ -57,7 +72,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get profileGoneUnsaved => '这个档案已经不在了，改动没有保存';
+  String get profileGoneUnsaved => '这个频道已经不在了，改动没有保存';
 
   @override
   String get noAppToOpenPage => '没找到能打开网页的应用';
@@ -94,10 +109,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get newProfile => '新档案';
+  String get newProfile => '新频道';
 
   @override
-  String get newProfileTooltip => '新建档案';
+  String get newProfileTooltip => '新建频道';
 
   @override
   String get profileDisabled => '已关闭';
@@ -107,7 +122,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get localSegmentationBody =>
-      '在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换档案不会重新加载模型。';
+      '在手机上用 Silero VAD 切句，只上传成句的片段。\n这些参数是全局的，切换频道不会重新加载模型。';
 
   @override
   String get vadMinSilenceMsLabel => '静音判定 (ms)';
@@ -183,7 +198,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '识别和合成在 brain 那边，手机只负责采集、切句、上传、播放。\n本机保存的是展示用的历史，不是对话上下文；删掉它不影响 brain 那边的记忆。';
 
   @override
-  String get profileAppearance => '这个档案长什么样';
+  String get profileAppearance => '这个频道长什么样';
 
   @override
   String get nameLabel => '名字';
@@ -249,10 +264,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enabledSubtitleOff => '不连它。历史仍然留在盘上，随时可以再打开';
 
   @override
-  String get focusedDisabledWarning => '它现在是主界面上选中的那个。保存之后会自动切到别的开着的档案。';
+  String get focusedDisabledWarning => '它现在是主界面上选中的那个。保存之后会自动切到别的开着的频道。';
 
   @override
-  String get switchToThisProfile => '切到这个档案';
+  String get switchToThisProfile => '切到这个频道';
 
   @override
   String get switchBySwipeHint => '主界面上左右滑说话按钮也能切';
@@ -266,11 +281,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get clearHistoryTitle => '清空这个档案的历史？';
+  String get clearHistoryTitle => '清空这个频道的历史？';
 
   @override
   String get clearHistoryBody =>
-      '主界面上这个档案的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。';
+      '主界面上这个频道的消息会全部消失，而且找不回来。\n\nbrain 那边的记忆不受影响 —— 本地存的是展示用的历史，对话上下文一直挂在 brain_id 上。';
 
   @override
   String get historyCleared => '已清空';
@@ -282,10 +297,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteProfileBody =>
-      '这个档案的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。';
+      '这个频道的 brain 配置和主题色都会没。\n\n盘上的历史不跟着删 —— 万一删错了，那一份还在。';
 
   @override
-  String get deleteProfileAction => '删除这个档案';
+  String get deleteProfileAction => '删除这个频道';
 
   @override
   String get chooseAvatar => '选头像';
@@ -527,7 +542,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noEvents => '还没有事件。回主界面点一下按钮，说话之后这里会有东西。';
 
   @override
-  String get noEnabledProfiles => '没有启用的档案';
+  String get noEnabledProfiles => '没有启用的频道';
 
   @override
   String get noEnabledProfilesBody => '去配置里新建一个，或者把原来那个打开';
@@ -538,10 +553,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get previousProfile => '上一个档案';
+  String get previousProfile => '上一个频道';
 
   @override
-  String get nextProfile => '下一个档案';
+  String get nextProfile => '下一个频道';
 
   @override
   String get micAfterAec => '麦克风 (AEC 后)';
@@ -669,10 +684,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get invalidBrainUrl => '地址要以 http:// 或 https:// 开头';
 
   @override
-  String get micSettingsPath => '系统设置 → 隐私与安全性 → 麦克风 → 打开 Zconnect';
+  String get micSettingsPath => '系统设置 → 隐私与安全性 → 麦克风 → 打开 Z Connect';
 
   @override
-  String get localNetworkSettingsPath => '系统设置 → 隐私与安全性 → 本地网络 → 打开 Zconnect';
+  String get localNetworkSettingsPath => '系统设置 → 隐私与安全性 → 本地网络 → 打开 Z Connect';
 
   @override
   String get continueBlocked => '麦克风、brain 地址和本地网络都通过之后才能继续';
@@ -684,7 +699,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get skipCurrentSpeechTooltip => '跳过正在播放的这句话';
 
   @override
-  String get profilesTitle => '档案';
+  String get profilesTitle => '频道';
 
   @override
   String profilesOpenCount(int open, int total) {
@@ -692,7 +707,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get profilePanelClose => '回到对话';
+  String get profilePanelClose => '回到消息';
 
   @override
   String get profileCurrent => '当前';
@@ -789,6 +804,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileNewGroup => '新建分组';
 
   @override
+  String get profileNewChannel => '新建频道';
+
+  @override
   String get profileGroupNameLabel => '分组名称';
 
   @override
@@ -825,25 +843,25 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get profileGroupEmpty => '这个分组里还没有档案';
+  String get profileGroupEmpty => '这个分组里还没有频道';
 
   @override
   String get profileAllGroups => '全部';
 
   @override
-  String get profileSearchHint => '搜索档案';
+  String get profileSearchHint => '搜索频道';
 
   @override
-  String get profileSearchEmpty => '没有匹配的档案';
+  String get profileSearchEmpty => '没有匹配的频道';
 
   @override
   String get profileGroupMenuTooltip => '分组操作';
 
   @override
-  String get profileCardActions => '档案操作';
+  String get profileCardActions => '频道操作';
 
   @override
-  String get profileCardEdit => '编辑档案';
+  String get profileCardEdit => '编辑频道';
 
   @override
   String get profileCardMoveGroup => '移动到分组';
@@ -869,4 +887,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileGroupDragHint => '长按分组标题调整顺序';
+
+  @override
+  String get profileBackToMessages => '回到消息';
 }

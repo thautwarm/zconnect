@@ -5,7 +5,7 @@ import '../../config/profile.dart';
 import '../../config/profile_group.dart';
 import '../../conversation/conversation_controller.dart';
 import '../../conversation/profile_status.dart';
-import '../settings_page.dart';
+import '../channel_settings_page.dart';
 import 'group_name_dialog.dart';
 import 'profile_grid_card.dart';
 
@@ -41,7 +41,7 @@ const String _allGroups = '__all__';
 const String _ungrouped = '__ungrouped__';
 const String _newGroup = '__new_group__';
 
-enum _GroupAction { rename, moveUp, moveDown, delete }
+enum _GroupAction { create, rename, moveUp, moveDown, delete }
 
 class _Bucket {
   const _Bucket(this.group, this.statuses);
@@ -123,15 +123,45 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
             if (open > _controller.maxOpenProfiles)
               _limitBanner(context, l10n, open, _controller.maxOpenProfiles),
             Expanded(
-              child: statuses.isEmpty
-                  ? _empty(context, l10n, false)
-                  : buckets.isEmpty
+              // 无搜索时至少会有「未分组」section（即使为空也保留「＋」
+              // 新建入口），所以这里只需要处理搜索无结果。
+              child: buckets.isEmpty
                   ? _empty(context, l10n, _searching)
-                  : _sections(context, buckets),
+                  : _sections(context, buckets, filter),
             ),
+            // 手机端屏幕高、单手拇指够不到左上角。给一个固定在底部的
+            // 小横条，点一下就回消息流；桌面端不需要，继续用左上角关闭。
+            if (_isMobile(context)) _backToMessagesBar(context, l10n),
           ],
         );
       },
+    );
+  }
+
+  bool _isMobile(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    return platform == TargetPlatform.android ||
+        platform == TargetPlatform.iOS ||
+        platform == TargetPlatform.fuchsia;
+  }
+
+  Widget _backToMessagesBar(BuildContext context, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: SizedBox(
+        height: 42,
+        width: double.infinity,
+        child: FilledButton.tonalIcon(
+          key: const ValueKey('fleet-back-to-messages'),
+          onPressed: widget.onClose,
+          icon: const Icon(Icons.chat_bubble_outline, size: 18),
+          label: Text(l10n.profileBackToMessages),
+          style: FilledButton.styleFrom(
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+        ),
+      ),
     );
   }
 
@@ -209,13 +239,46 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
       counts[id] = (counts[id] ?? 0) + 1;
     }
 
+    final theme = Theme.of(context);
+
     Widget chip(String key, String label, String value, int? count) {
+      final selected = filter == value;
       return Padding(
         padding: const EdgeInsets.only(right: 8),
         child: ChoiceChip(
           key: ValueKey('group-chip-$key'),
-          label: Text(count == null ? label : '$label $count'),
-          selected: filter == value,
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label),
+              if (count != null) ...[
+                const SizedBox(width: 6),
+                Container(
+                  key: ValueKey('group-chip-count-$key'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: selected
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          selected: selected,
           showCheckmark: false,
           // 搜索是跨组的：这期间组筛选不生效，但保留选择，清空后恢复。
           onSelected: _searching
@@ -256,7 +319,7 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
     );
   }
 
-  Widget _sections(BuildContext context, List<_Bucket> buckets) {
+  Widget _sections(BuildContext context, List<_Bucket> buckets, String filter) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 840
@@ -274,10 +337,18 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
         _scheduleFocusedScroll(buckets, columns, cardHeight);
 
         for (final bucket in buckets) {
+          // 「＋」只属于未分组，且只在「全部 / 未分组」视图、非搜索时出现。
+          // 它是 section 的最后一个网格单元，但不进入 `bucket.statuses`，
+          // 因此不参与计数、搜索、拖拽和自动滚动估算。
+          final showPlus =
+              bucket.group == null &&
+              !_searching &&
+              (filter == _allGroups || filter == _ungrouped);
+
           slivers.add(
             SliverToBoxAdapter(child: _groupHeader(context, l10n, bucket)),
           );
-          if (bucket.statuses.isEmpty) {
+          if (bucket.statuses.isEmpty && !showPlus) {
             slivers.add(
               SliverToBoxAdapter(
                 child: Padding(
@@ -294,6 +365,7 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
             continue;
           }
 
+          final childCount = bucket.statuses.length + (showPlus ? 1 : 0);
           slivers.add(
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, _gridTop, 16, _gridBottom),
@@ -304,11 +376,14 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
                   crossAxisSpacing: _gridSpacing,
                   childAspectRatio: _cardAspect,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      _card(context, bucket, bucket.statuses[index]),
-                  childCount: bucket.statuses.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index < bucket.statuses.length) {
+                    return _card(context, bucket, bucket.statuses[index]);
+                  }
+                  return ProfileGridNewCard(
+                    onTap: () => _createChannel(groupId: bucket.group?.id),
+                  );
+                }, childCount: childCount),
               ),
             ),
           );
@@ -362,10 +437,23 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
               ),
             ),
             const SizedBox(width: 6),
-            Text(
-              '${bucket.statuses.length}',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            Container(
+              key: ValueKey(
+                group == null
+                    ? 'group-header-count-$_ungrouped'
+                    : 'group-header-count-${group.id}',
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${bucket.statuses.length}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const Spacer(),
@@ -378,20 +466,29 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
                     _onGroupAction(context, l10n, group, index, action),
                 itemBuilder: (context) => [
                   PopupMenuItem(
+                    key: const ValueKey('group-menu-create'),
+                    value: _GroupAction.create,
+                    child: Text(l10n.profileNewChannel),
+                  ),
+                  PopupMenuItem(
+                    key: const ValueKey('group-menu-rename'),
                     value: _GroupAction.rename,
                     child: Text(l10n.profileGroupRename),
                   ),
                   PopupMenuItem(
+                    key: const ValueKey('group-menu-move-up'),
                     value: _GroupAction.moveUp,
                     enabled: index > 0,
                     child: Text(l10n.profileGroupMoveUp),
                   ),
                   PopupMenuItem(
+                    key: const ValueKey('group-menu-move-down'),
                     value: _GroupAction.moveDown,
                     enabled: index >= 0 && index < groups.length - 1,
                     child: Text(l10n.profileGroupMoveDown),
                   ),
                   PopupMenuItem(
+                    key: const ValueKey('group-menu-delete'),
                     value: _GroupAction.delete,
                     child: Text(l10n.profileGroupDelete),
                   ),
@@ -521,11 +618,7 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
     );
   }
 
-  Widget _card(
-    BuildContext context,
-    _Bucket bucket,
-    ProfileStatus status,
-  ) {
+  Widget _card(BuildContext context, _Bucket bucket, ProfileStatus status) {
     final groupId = bucket.group?.id;
     final card = ProfileGridCard(
       key: ValueKey('profile-card-visual-${status.profile.id}'),
@@ -599,13 +692,25 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
     return index < 0 ? id : _controller.config.profiles[index].displayName;
   }
 
-  /// 卡片菜单的「编辑」：复用已有设置页，只是把初始选中项定位到这张卡。
+  /// 卡片菜单的「编辑频道」：直接打开这个频道的设置页。
   Future<void> _edit(ProfileStatus status) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => SettingsPage(
+        builder: (_) => ChannelSettingsPage.edit(
           controller: _controller,
-          initialProfileId: status.profile.id,
+          profileId: status.profile.id,
+        ),
+      ),
+    );
+  }
+
+  /// 新建频道。只打开草稿页，真正创建发生在用户点保存时。
+  Future<void> _createChannel({String? groupId}) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChannelSettingsPage.create(
+          controller: _controller,
+          groupId: groupId,
         ),
       ),
     );
@@ -624,11 +729,7 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
           SizedBox(
             width: 24,
             child: selected
-                ? Icon(
-                    Icons.check,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  )
+                ? Icon(Icons.check, size: 18, color: theme.colorScheme.primary)
                 : null,
           ),
           const SizedBox(width: 6),
@@ -649,20 +750,14 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
           for (final group in groups)
             SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop(group.id),
-              child: option(
-                _groupName(l10n, group),
-                current == group.id,
-              ),
+              child: option(_groupName(l10n, group), current == group.id),
             ),
           const Divider(height: 8),
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop(_newGroup),
             child: Row(
               children: [
-                const SizedBox(
-                  width: 24,
-                  child: Icon(Icons.add, size: 18),
-                ),
+                const SizedBox(width: 24, child: Icon(Icons.add, size: 18)),
                 const SizedBox(width: 6),
                 Text(l10n.profileMoveToGroupNew),
               ],
@@ -818,6 +913,9 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
     _GroupAction action,
   ) async {
     switch (action) {
+      case _GroupAction.create:
+        await _createChannel(groupId: group.id);
+        break;
       case _GroupAction.rename:
         await _renameGroup(context, l10n, group);
         break;
@@ -978,8 +1076,10 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
       final list = byGroup[group.id] ?? const <ProfileStatus>[];
       if (list.isNotEmpty) buckets.add(_Bucket(group, list));
     }
+    // 「未分组」是系统收件箱，也是固定的新建入口：即使为空也要保留 section，
+    // 这样「＋」卡片在「全部」视图里始终可见。
     final ungrouped = byGroup[null] ?? const <ProfileStatus>[];
-    if (ungrouped.isNotEmpty) buckets.add(_Bucket(null, ungrouped));
+    buckets.add(_Bucket(null, ungrouped));
     return buckets;
   }
 

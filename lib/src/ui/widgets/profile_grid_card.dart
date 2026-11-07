@@ -74,36 +74,34 @@ class ProfileGridCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      profile.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: closed
-                            ? theme.colorScheme.onSurfaceVariant
-                            : theme.colorScheme.onSurface,
-                      ),
+              if (profile.name.trim().isNotEmpty &&
+                  profile.brain.brainId.trim().isNotEmpty)
+                Expanded(
+                  child: Text(
+                    profile.brain.brainId,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    if (profile.name.trim().isNotEmpty &&
-                        profile.brain.brainId.trim().isNotEmpty)
-                      Text(
-                        profile.brain.brainId,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+                  ),
+                )
+              else
+                const Spacer(),
             ],
+          ),
+          const SizedBox(height: 6),
+          // 标题单独占一行，不再和头像、brain_id 抢横向空间；超长才省略。
+          Text(
+            profile.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: closed
+                  ? theme.colorScheme.onSurfaceVariant
+                  : theme.colorScheme.onSurface,
+            ),
           ),
           const Spacer(),
           Row(
@@ -203,16 +201,58 @@ class ProfileGridCard extends StatelessWidget {
   }
 }
 
+/// 「未分组」section 末尾固定的新建频道入口。
+///
+/// 尺寸由外层网格单元决定，和普通频道卡片一致。它只是一个入口，不承载
+/// 频道数据，所以不参与搜索、计数和拖拽。
+class ProfileGridNewCard extends StatelessWidget {
+  const ProfileGridNewCard({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final accent = theme.colorScheme.primary;
+
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: accent.withValues(alpha: 0.5), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('profile-new-channel-card'),
+        onTap: onTap,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: 34, color: accent),
+              const SizedBox(height: 6),
+              Text(
+                l10n.profileNewChannel,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 卡片右下角的档案操作菜单。
 ///
 /// 单独一层，和右上角的开关一样不落在主体 InkWell 里：点「更多」不会
 /// 顺带切焦点，也不会碰 enabled。
 class _CardMenu extends StatelessWidget {
-  const _CardMenu({
-    super.key,
-    required this.onEdit,
-    required this.onMoveGroup,
-  });
+  const _CardMenu({super.key, required this.onEdit, required this.onMoveGroup});
 
   final VoidCallback onEdit;
   final VoidCallback onMoveGroup;

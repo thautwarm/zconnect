@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
@@ -14,7 +13,7 @@ import 'support/avatar_fakes.dart';
 import 'support/test_app.dart';
 import 'support/voice_fakes.dart';
 
-AssistantConfig _twoProfiles() => const AssistantConfig(
+AssistantConfig _config() => const AssistantConfig(
   profiles: [
     Profile(
       id: 'p_a',
@@ -25,29 +24,6 @@ AssistantConfig _twoProfiles() => const AssistantConfig(
       id: 'p_b',
       name: 'B',
       brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'b'),
-    ),
-  ],
-  focusedProfileId: 'p_a',
-);
-
-/// A、B 开着，C 关着 —— 用来验证设置页打开档案时的上限。
-AssistantConfig _threeProfiles() => const AssistantConfig(
-  profiles: [
-    Profile(
-      id: 'p_a',
-      name: 'A',
-      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'a'),
-    ),
-    Profile(
-      id: 'p_b',
-      name: 'B',
-      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'b'),
-    ),
-    Profile(
-      id: 'p_c',
-      name: 'C',
-      enabled: false,
-      brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'c'),
     ),
   ],
   focusedProfileId: 'p_a',
@@ -56,29 +32,14 @@ AssistantConfig _threeProfiles() => const AssistantConfig(
 /// 全程不碰磁盘：历史走内存、头像走假的。
 ///
 /// **不能给它真的 appDir。** `testWidgets` 把测试体跑在假时钟里，真实的
-/// 异步文件 IO 在那里永远不会完成 —— 测试不是失败，是直接挂死，
-/// 连 `--timeout` 都救不了（超时靠定时器，定时器也在假时钟里）。
-Future<(ConversationController, FakeAvatarStore)> _boot({
-  int maxOpenProfiles = 12,
-  AssistantConfig? config,
-}) async {
-  final (controller, avatars, _) = await _bootFull(
-    maxOpenProfiles: maxOpenProfiles,
-    config: config,
-  );
-  return (controller, avatars);
-}
-
-/// 要多一个假引擎的时候用它 —— 断言"配置有没有真的推到原生"需要拿到它。
-Future<(ConversationController, FakeAvatarStore, FakeVoiceEngine)> _bootFull({
-  int maxOpenProfiles = 12,
+/// 异步文件 IO 在那里永远不会完成 —— 测试不是失败，是直接挂死。
+Future<(ConversationController, FakeAvatarStore, FakeVoiceEngine)> _boot({
   AssistantConfig? config,
 }) async {
   final avatars = FakeAvatarStore();
   final engine = FakeVoiceEngine();
   final controller = ConversationController(
     engine: engine,
-    maxOpenProfiles: maxOpenProfiles,
     brainFactory: () =>
         BrainClient(client: MockClient((_) async => throw StateError('不该发请求'))),
     history: MemoryMessageStore(),
@@ -88,7 +49,7 @@ Future<(ConversationController, FakeAvatarStore, FakeVoiceEngine)> _bootFull({
       required AssistantConfig config,
     }) async => FakeSegmenter(),
   );
-  await controller.updateConfig(config ?? _twoProfiles());
+  await controller.updateConfig(config ?? _config());
   return (controller, avatars, engine);
 }
 
@@ -100,17 +61,13 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-Profile _profile(ConversationController c, String id) =>
-    c.config.profiles.firstWhere((p) => p.id == id);
-
 /// 按标签找输入框。比按下标找稳 —— 页面上本来就有一堆 TextField。
 Finder _field(String label) =>
     find.ancestor(of: find.text(label), matching: find.byType(TextField));
 
-/// 分组 section 排在 Brain 之后，默认 600px 高的测试视口里 ListView 不会
-/// 构建它。只给这两条分组测试一个更高的视口。
+/// 「说话人识别」在断句参数下面，默认 600px 高的视口里不会被构建。
 void _useTallView(WidgetTester tester) {
-  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.physicalSize = const Size(800, 1800);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -119,37 +76,85 @@ void _useTallView(WidgetTester tester) {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  testWidgets('顶层是两个 tab：档案 / 通用', (tester) async {
-    final (controller, _) = await _boot();
+  testWidgets('设置页是单页「配置」，只剩通用配置', (tester) async {
+    final (controller, _, _) = await _boot();
     addTearDown(controller.dispose);
 
     await _pump(tester, controller);
 
-    expect(find.text('档案'), findsOneWidget);
-    expect(find.text('通用'), findsOneWidget);
-    // 默认停在档案 tab
-    expect(_field('Base URL'), findsOneWidget);
+    expect(find.text('配置'), findsOneWidget, reason: '标题还是原来的 settingsTitle');
+    expect(find.text('频道'), findsNothing, reason: '频道 tab 已退役');
+    expect(find.text('通用'), findsNothing, reason: '只剩一个 tab 就没必要保留 TabBar');
 
-    await tester.tap(find.text('通用'));
-    await tester.pumpAndSettle();
+    // 通用配置项直接出现
     expect(_field('静音判定 (ms)'), findsOneWidget);
+    expect(find.text('语言'), findsOneWidget);
+
+    // 频道编辑字段不该再嵌在设置页里
+    expect(find.text('Base URL'), findsNothing);
+    expect(find.text('启用'), findsNothing);
+  });
+
+  testWidgets('保存会把断句参数写进配置', (tester) async {
+    final (controller, _, _) = await _boot();
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    await tester.enterText(_field('静音判定 (ms)'), '1234');
+    await tester.pump();
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(controller.config.vadMinSilenceMs, 1234);
+    expect(find.text('已保存'), findsOneWidget);
+  });
+
+  testWidgets('「只有我的声音」切换后页面跟着 controller 重建', (tester) async {
+    _useTallView(tester);
+    final (controller, _, _) = await _boot();
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+
+    final tile = find.ancestor(
+      of: find.text('只识别本人的声音'),
+      matching: find.byType(SwitchListTile),
+    );
+    expect(tile, findsOneWidget);
+    expect(
+      tester.widget<SwitchListTile>(tile).value,
+      isTrue,
+      reason: 'pvadEnabled 默认开',
+    );
+
+    await tester.ensureVisible(tile);
+    await tester.pumpAndSettle();
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(controller.config.pvadEnabled, isFalse);
+    expect(
+      tester.widget<SwitchListTile>(tile).value,
+      isFalse,
+      reason: '开关状态必须跟着 controller 更新，不能停在旧画面',
+    );
+    expect(find.text('需要先导入声纹'), findsOneWidget);
   });
 
   testWidgets('关掉「音量减键清空队列」，会推到原生', (tester) async {
     // 原生侧按 onKeyDown 收键，它看不到配置 —— 不推下去的话，开关在界面上
     // 动了，按键行为一动不动。
-    final (controller, _, engine) = await _bootFull();
+    final (controller, _, engine) = await _boot();
     addTearDown(controller.dispose);
 
     await _pump(tester, controller);
-    await tester.tap(find.text('通用'));
-    await tester.pumpAndSettle();
 
     expect(controller.config.volumeKeyClearsQueue, isTrue, reason: '默认是拦');
     expect(engine.volumeKeyPushes, isEmpty, reason: '没人动过，不该推');
 
     // 这一节排在断句参数和说话人识别下面，默认在视口外。ListView 是懒构建的，
-    // 屏幕外的项根本不在树里 —— `ensureVisible` 找不到它，必须先滚出来。
+    // 屏幕外的项根本不在树里 —— 必须先滚出来。
     final tile = find.text('音量减键清空队列');
     final list = find.byType(ListView).last;
     for (var i = 0; i < 20 && tile.evaluate().isEmpty; i++) {
@@ -157,8 +162,6 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(tile, findsOneWidget, reason: '滚到底也该看得见这一项');
-    // 文案缩短之后，这一项可能已经构建进树里、但还停在视口外。
-    // 不滚到可见位置就点，点击会落空（tap 只打警告，断言随后失败）。
     await tester.ensureVisible(tile);
     await tester.pumpAndSettle();
     await tester.tap(tile);
@@ -169,27 +172,9 @@ void main() {
     expect(engine.volumeKeyPushes, [false]);
   });
 
-  testWidgets('点另一个档案的 tab，就切到它的设置', (tester) async {
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    // 一开始是 A：它的 brain_id 显示在输入框里
-    expect(find.text('a'), findsOneWidget);
-
-    // chip 里有两个字 "B"：头像里的首字和名字。点哪个都落在同一个 chip 上，
-    // 取后一个（名字）更稳。
-    await tester.tap(find.text('B').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('b'), findsOneWidget, reason: '切过去看到的是 B 的配置');
-    expect(find.text('a'), findsNothing, reason: 'A 的输入框不该还留着');
-  });
-
   testWidgets('配置还没读回来时打开设置页不会崩', (tester) async {
-    // 故意不 loadConfig/updateConfig：模拟冷启动后立刻点齿轮的那一帧，
-    // 这时 config.profiles 还是空的。旧代码在这里下标越界，release 下
-    // 用户只看到一片灰白。
+    // 故意不 updateConfig：模拟冷启动后立刻点齿轮的那一帧。设置页只读全局
+    // 参数，不应该依赖 profiles 是否已经加载。
     final controller = ConversationController(
       engine: FakeVoiceEngine(),
       brainFactory: () => BrainClient(
@@ -208,226 +193,5 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('配置'), findsOneWidget, reason: '设置页本身要出来');
-    expect(find.text('没有启用的档案'), findsOneWidget);
-  });
-
-  testWidgets('长按拖动档案 tab 可以调整顺序，焦点不变', (tester) async {
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    expect(controller.config.profiles.map((p) => p.id), ['p_a', 'p_b']);
-
-    // 只在 chip 里面找，别抓到编辑器里同名的文字。
-    Finder chipText(String text) => find.descendant(
-      of: find.byType(ReorderableDelayedDragStartListener),
-      matching: find.text(text),
-    );
-
-    // 长按 A 的名字，拖过 B 再松手。和框架自己测 ReorderableListView
-    // 用的是同一套手势序列：先等长按判定，再移动、松手。
-    final drag = await tester.startGesture(
-      tester.getCenter(chipText('A').last),
-    );
-    await tester.pump(kLongPressTimeout + kPressTimeout);
-    await drag.moveTo(
-      tester.getCenter(chipText('B').last) + const Offset(120, 0),
-    );
-    await tester.pump(kPressTimeout);
-    await drag.up();
-    await tester.pumpAndSettle();
-
-    expect(controller.config.profiles.map((p) => p.id), ['p_b', 'p_a']);
-    expect(controller.config.focusedProfileId, 'p_a', reason: '拖动不该改焦点');
-    // 界面上 B 也确实挪到了 A 左边
-    expect(
-      tester.getTopLeft(chipText('B').last).dx,
-      lessThan(tester.getTopLeft(chipText('A').last).dx),
-    );
-  });
-
-  testWidgets('切档案之前会把这一屏的改动落盘', (tester) async {
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    await tester.enterText(_field('名字'), '改过的名字');
-    await tester.pump();
-
-    // 没按保存，直接切走
-    await tester.tap(find.text('B').last);
-    await tester.pumpAndSettle();
-
-    expect(
-      _profile(controller, 'p_a').name,
-      '改过的名字',
-      reason: '切走不落盘的话，用户敲进去的字就无声无息地没了',
-    );
-  });
-
-  testWidgets('保存会写字段，也会把"去掉头像"落地成删文件', (tester) async {
-    final (controller, avatars) = await _boot();
-    addTearDown(controller.dispose);
-
-    // 先让它"有一个头像"：配置里记着文件名，假存储里也有这个文件
-    const oldName = 'p_a_0.png';
-    avatars.files[oldName] = '图';
-    await controller.saveProfile(
-      _profile(controller, 'p_a').copyWith(avatarFile: oldName),
-    );
-
-    await _pump(tester, controller);
-    expect(find.text('去掉'), findsOneWidget, reason: '有头像才显示"去掉"');
-
-    await tester.tap(find.text('去掉'));
-    await tester.pumpAndSettle();
-    expect(find.text('选头像'), findsOneWidget, reason: '按了去掉就变回"选头像"');
-
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    expect(_profile(controller, 'p_a').avatarFile, isNull);
-    expect(
-      avatars.removed,
-      contains(oldName),
-      reason: '配置里不引用了，文件也得删 —— 不然每换一次就多一份永久垃圾',
-    );
-    expect(avatars.files.containsKey(oldName), isFalse);
-  });
-
-  testWidgets('加号新建一个档案，并且立刻选中它', (tester) async {
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    // 档案 chip 末尾那个加号。编辑器里现在也有一个「新建分组」的加号图标，
-    // 不能再按 Icons.add 盲找。
-    await tester.tap(find.byTooltip('新建档案'));
-    await tester.pumpAndSettle();
-
-    expect(controller.config.profiles.length, 3);
-    expect(find.text('新档案'), findsWidgets);
-    // 新档案还没填 brain，所以 Base URL 框是空的
-    expect(tester.widget<TextField>(_field('Base URL')).controller?.text, '');
-  });
-
-  testWidgets('关着的档案在一排 tab 里看得出来', (tester) async {
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-    final b = _profile(controller, 'p_b');
-    await controller.saveProfile(b.copyWith(enabled: false));
-
-    await _pump(tester, controller);
-
-    // 不用 find.bySemanticsLabel：那需要先 ensureSemantics，而这里要验的
-    // 本来就是"那个图标在不在、它有没有说自己是关闭"
-    final icon = tester.widget<Icon>(find.byIcon(Icons.power_settings_new));
-    expect(icon.semanticLabel, '已关闭', reason: '一排 tab 里得一眼看出哪个是关着的');
-  });
-
-  testWidgets('头像文件不见了也不会把设置页搞崩', (tester) async {
-    final (controller, avatars) = await _boot();
-    addTearDown(controller.dispose);
-    // 配置里记着文件名，但假存储里没有这个文件 —— 文件被系统清掉的样子
-    await controller.saveProfile(
-      _profile(controller, 'p_a').copyWith(avatarFile: 'p_a_不见了.png'),
-    );
-
-    await _pump(tester, controller);
-
-    expect(tester.takeException(), isNull);
-    expect(find.text('A'), findsWidgets, reason: '页面照常，chip 上退回那个字');
-    expect(avatars.files, isEmpty);
-  });
-
-  testWidgets('档案编辑器可以选择已有分组，保存后落到分组存储', (tester) async {
-    _useTallView(tester);
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-    final group = await controller.createGroup('工作');
-
-    await _pump(tester, controller);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('profile-group-dropdown')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('profile-group-dropdown')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('工作').last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    expect(controller.groupIdOf('p_a'), group.id);
-  });
-
-  testWidgets('档案编辑器可以新建分组，并保存给当前档案', (tester) async {
-    _useTallView(tester);
-    final (controller, _) = await _boot();
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    await tester.ensureVisible(find.byKey(const ValueKey('profile-group-new')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('profile-group-new')));
-    await tester.pumpAndSettle();
-
-    final field = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.byType(TextField),
-    );
-    await tester.enterText(field, '家庭');
-    await tester.pump();
-    await tester.tap(find.text('创建'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    final group = controller.profileGroups.singleWhere((g) => g.name == '家庭');
-    expect(controller.groupIdOf('p_a'), group.id);
-  });
-
-  testWidgets('设置页打开档案也不能绕过同时打开上限', (tester) async {
-    _useTallView(tester);
-    final (controller, _) = await _boot(
-      maxOpenProfiles: 2,
-      config: _threeProfiles(),
-    );
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    await tester.tap(find.text('C').last);
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('启用'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('启用'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    expect(
-      controller.config.profiles.firstWhere((p) => p.id == 'p_c').enabled,
-      isFalse,
-      reason: '上限必须拦住设置页这条路径',
-    );
-    expect(find.text('最多同时打开 2 个，请先关闭一个'), findsOneWidget);
-  });
-
-  testWidgets('达到上限时新建档案先保持关闭', (tester) async {
-    _useTallView(tester);
-    final (controller, _) = await _boot(maxOpenProfiles: 2);
-    addTearDown(controller.dispose);
-
-    await _pump(tester, controller);
-    await tester.tap(find.byTooltip('新建档案'));
-    await tester.pumpAndSettle();
-
-    final created = controller.config.profiles.last;
-    expect(created.name, '新档案');
-    expect(created.enabled, isFalse, reason: '新建不能绕过上限；先关着，用户关掉别的再打开');
-    expect(find.text('最多同时打开 2 个，请先关闭一个'), findsOneWidget);
   });
 }

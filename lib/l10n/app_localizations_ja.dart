@@ -28,7 +28,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsTitle => '設定';
 
   @override
-  String get tabProfiles => 'プロフィール';
+  String get channelSettingsTitle => 'チャンネル設定';
+
+  @override
+  String get newChannelName => '新しいチャンネル';
+
+  @override
+  String get discardChangesTitle => '未保存の変更を破棄しますか？';
+
+  @override
+  String get discardChangesBody => 'このページを離れると、チャンネル設定の変更は保存されません。';
+
+  @override
+  String get discard => '破棄';
+
+  @override
+  String get tabProfiles => 'チャンネル';
 
   @override
   String get tabGeneral => '一般';
@@ -57,7 +72,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get profileGoneUnsaved => 'このプロフィールはもう存在しません。変更は保存されていません';
+  String get profileGoneUnsaved => 'このチャンネルはもう存在しません。変更は保存されていません';
 
   @override
   String get noAppToOpenPage => 'ページを開けるアプリが見つかりません';
@@ -94,10 +109,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get newProfile => '新しいプロフィール';
+  String get newProfile => '新しいチャンネル';
 
   @override
-  String get newProfileTooltip => 'プロフィールを新規作成';
+  String get newProfileTooltip => 'チャンネルを新規作成';
 
   @override
   String get profileDisabled => 'オフ';
@@ -107,7 +122,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get localSegmentationBody =>
-      'スマホ上で Silero VAD を使って文を区切り、完成した区間だけを送信します。\nこれらの設定は全体共通です。プロフィールを切り替えてもモデルは再読み込みされません。';
+      'スマホ上で Silero VAD を使って文を区切り、完成した区間だけを送信します。\nこれらの設定は全体共通です。チャンネルを切り替えてもモデルは再読み込みされません。';
 
   @override
   String get vadMinSilenceMsLabel => '無音判定 (ms)';
@@ -186,7 +201,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '認識と合成は brain 側で行われ、スマホは収録・区間検出・送信・再生だけを担当します。\n端末に保存されるのは表示用の履歴で、会話のコンテキストではありません。削除しても brain 側の記憶には影響しません。';
 
   @override
-  String get profileAppearance => 'このプロフィールの見た目';
+  String get profileAppearance => 'このチャンネルの見た目';
 
   @override
   String get nameLabel => '名前';
@@ -253,10 +268,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get focusedDisabledWarning =>
-      '現在メイン画面で選択中のプロフィールです。保存すると他の有効なプロフィールに切り替わります。';
+      '現在メイン画面で選択中のチャンネルです。保存すると他の有効なチャンネルに切り替わります。';
 
   @override
-  String get switchToThisProfile => 'このプロフィールに切り替える';
+  String get switchToThisProfile => 'このチャンネルに切り替える';
 
   @override
   String get switchBySwipeHint => 'メイン画面で話すボタンを左右にスワイプしても切り替えられる';
@@ -270,11 +285,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get clearHistoryTitle => 'このプロフィールの履歴を削除しますか？';
+  String get clearHistoryTitle => 'このチャンネルの履歴を削除しますか？';
 
   @override
   String get clearHistoryBody =>
-      'メイン画面のこのプロフィールのメッセージがすべて消え、元に戻せません。\n\nbrain 側の記憶には影響しません。ローカルに保存されるのは表示用の履歴で、会話のコンテキストは brain_id にあります。';
+      'メイン画面のこのチャンネルのメッセージがすべて消え、元に戻せません。\n\nbrain 側の記憶には影響しません。ローカルに保存されるのは表示用の履歴で、会話のコンテキストは brain_id にあります。';
 
   @override
   String get historyCleared => '削除しました';
@@ -286,10 +301,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deleteProfileBody =>
-      'このプロフィールの brain 設定とテーマカラーが失われます。\n\nディスク上の履歴は削除されません。誤って削除してもその履歴は残ります。';
+      'このチャンネルの brain 設定とテーマカラーが失われます。\n\nディスク上の履歴は削除されません。誤って削除してもその履歴は残ります。';
 
   @override
-  String get deleteProfileAction => 'このプロフィールを削除';
+  String get deleteProfileAction => 'このチャンネルを削除';
 
   @override
   String get chooseAvatar => 'アイコンを選択';
@@ -532,10 +547,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noEvents => 'まだイベントはありません。メイン画面でボタンを押して話すと、ここに表示されます。';
 
   @override
-  String get noEnabledProfiles => '有効なプロフィールがありません';
+  String get noEnabledProfiles => '有効なチャンネルがありません';
 
   @override
-  String get noEnabledProfilesBody => '設定で新規作成するか、元のプロフィールを有効にしてください';
+  String get noEnabledProfilesBody => '設定で新規作成するか、元のチャンネルを有効にしてください';
 
   @override
   String switchToProfile(String name) {
@@ -543,10 +558,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get previousProfile => '前のプロフィール';
+  String get previousProfile => '前のチャンネル';
 
   @override
-  String get nextProfile => '次のプロフィール';
+  String get nextProfile => '次のチャンネル';
 
   @override
   String get micAfterAec => 'マイク（AEC 後）';
@@ -675,11 +690,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get micSettingsPath =>
-      'システム設定 → プライバシーとセキュリティ → マイク → Zconnect を有効にする';
+      'システム設定 → プライバシーとセキュリティ → マイク → Z Connect を有効にする';
 
   @override
   String get localNetworkSettingsPath =>
-      'システム設定 → プライバシーとセキュリティ → ローカルネットワーク → Zconnect を有効にする';
+      'システム設定 → プライバシーとセキュリティ → ローカルネットワーク → Z Connect を有効にする';
 
   @override
   String get continueBlocked => 'マイク、brain アドレス、ローカルネットワークの確認がすべて通ると続行できます';
@@ -691,7 +706,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get skipCurrentSpeechTooltip => '再生中のこの文をスキップ';
 
   @override
-  String get profilesTitle => 'プロフィール';
+  String get profilesTitle => 'チャンネル';
 
   @override
   String profilesOpenCount(int open, int total) {
@@ -699,7 +714,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get profilePanelClose => '会話に戻る';
+  String get profilePanelClose => 'メッセージに戻る';
 
   @override
   String get profileCurrent => '現在';
@@ -796,6 +811,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileNewGroup => '新しいグループ';
 
   @override
+  String get profileNewChannel => '新しいチャンネル';
+
+  @override
   String get profileGroupNameLabel => 'グループ名';
 
   @override
@@ -832,25 +850,25 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get profileGroupEmpty => 'このグループにはまだプロフィールがありません';
+  String get profileGroupEmpty => 'このグループにはまだチャンネルがありません';
 
   @override
   String get profileAllGroups => 'すべて';
 
   @override
-  String get profileSearchHint => 'プロフィールを検索';
+  String get profileSearchHint => 'チャンネルを検索';
 
   @override
-  String get profileSearchEmpty => '一致するプロフィールがありません';
+  String get profileSearchEmpty => '一致するチャンネルがありません';
 
   @override
   String get profileGroupMenuTooltip => 'グループ操作';
 
   @override
-  String get profileCardActions => 'プロフィール操作';
+  String get profileCardActions => 'チャンネル操作';
 
   @override
-  String get profileCardEdit => 'プロフィールを編集';
+  String get profileCardEdit => 'チャンネルを編集';
 
   @override
   String get profileCardMoveGroup => 'グループへ移動';
@@ -876,4 +894,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileGroupDragHint => 'グループ名を長押しして並べ替え';
+
+  @override
+  String get profileBackToMessages => 'メッセージに戻る';
 }

@@ -75,6 +75,7 @@ Future<void> _openFleet(WidgetTester tester) async {
 
 Finder _card(String id) => find.byKey(ValueKey('profile-card-$id'));
 Finder _power(String id) => find.byKey(ValueKey('profile-power-$id'));
+Finder _newCard() => find.byKey(const ValueKey('profile-new-channel-card'));
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
@@ -183,6 +184,75 @@ void main() {
     await _openFleet(tester);
 
     expect(find.text('未配置 brain'), findsOneWidget);
+  });
+
+  testWidgets('未分组末尾有＋卡片，点它打开频道新建页且不落盘', (tester) async {
+    final controller = await _boot(_threeProfiles());
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    expect(_newCard(), findsOneWidget, reason: '全部视图里未分组末尾固定有＋卡片');
+
+    await tester.tap(_newCard());
+    await tester.pumpAndSettle();
+
+    expect(find.text('频道设置'), findsOneWidget);
+    expect(find.text('新频道'), findsOneWidget, reason: '打开的是新建草稿');
+    expect(controller.config.profiles.length, 3, reason: '打开新建页不能立刻创建频道，保存才落盘');
+
+    // 什么都没改，直接返回。
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(controller.config.profiles.length, 3);
+    expect(find.byKey(const ValueKey('profile-panel')), findsOneWidget);
+  });
+
+  testWidgets('＋卡片不计入组标题数量，也不参与拖拽', (tester) async {
+    final controller = await _boot(_threeProfiles());
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    // 打开面板时会自动把当前聚焦卡片滚进视口，组标题可能刚好被滚出
+    // 懒构建范围；先回到顶部再检查标题数量。
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 400));
+    await _settle(tester);
+
+    final header = find.byKey(const ValueKey('group-header-__ungrouped__'));
+    expect(
+      find.descendant(of: header, matching: find.text('3')),
+      findsOneWidget,
+      reason: '组标题数量只算频道，不算＋卡片',
+    );
+
+    expect(
+      find.ancestor(
+        of: _newCard(),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is LongPressDraggable<dynamic>,
+        ),
+      ),
+      findsNothing,
+      reason: '＋卡片只是入口，不能像频道卡片那样长按拖动',
+    );
+  });
+
+  testWidgets('搜索时隐藏＋卡片，清空后恢复', (tester) async {
+    final controller = await _boot(_threeProfiles());
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    expect(_newCard(), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('profile-search')), 'A');
+    await _settle(tester, 4);
+    expect(_newCard(), findsNothing, reason: '搜索只显示匹配频道，不显示新建入口');
+
+    await tester.enterText(find.byKey(const ValueKey('profile-search')), '');
+    await _settle(tester, 4);
+    expect(_newCard(), findsOneWidget);
   });
 
   testWidgets('200 个档案只构建视口里的卡片', (tester) async {

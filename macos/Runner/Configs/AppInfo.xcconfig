@@ -11,4 +11,4 @@ PRODUCT_NAME = pp_friend
 PRODUCT_BUNDLE_IDENTIFIER = com.ppfriend.ppFriend
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 Zconnect. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Z Connect. All rights reserved.
