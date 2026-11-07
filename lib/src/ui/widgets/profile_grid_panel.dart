@@ -201,26 +201,64 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
   }
 
   Widget _searchField(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-      child: TextField(
-        key: const ValueKey('profile-search'),
-        controller: _search,
-        onChanged: (value) => setState(() => _query = value),
-        decoration: InputDecoration(
-          isDense: true,
-          prefixIcon: const Icon(Icons.search, size: 20),
-          hintText: l10n.profileSearchHint,
-          suffixIcon: _query.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: l10n.clear,
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _search.clear();
-                    setState(() => _query = '');
-                  },
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                key: const ValueKey('profile-search'),
+                controller: _search,
+                onChanged: (value) => setState(() => _query = value),
+                textAlignVertical: TextAlignVertical.center,
+                style: theme.textTheme.bodyMedium,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: l10n.profileSearchHint,
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: l10n.clear,
+                          icon: const Icon(Icons.clear, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 34,
+                            height: 34,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            _search.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                  suffixIconConstraints: const BoxConstraints(
+                    minWidth: 34,
+                    minHeight: 34,
+                  ),
                 ),
+              ),
+            ),
+          ],
         ),
       ),
     );

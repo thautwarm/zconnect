@@ -238,6 +238,23 @@ void main() {
     );
   });
 
+  testWidgets('搜索框保持紧凑，图标和提示文字竖直居中', (tester) async {
+    final controller = await _boot(_threeProfiles());
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    final search = find.byKey(const ValueKey('profile-search'));
+    expect(tester.getSize(search).height, lessThanOrEqualTo(40.1));
+    final iconCenter = tester.getCenter(find.byIcon(Icons.search));
+    final hintCenter = tester.getCenter(find.text('搜索频道'));
+    expect(
+      (iconCenter.dy - hintCenter.dy).abs(),
+      lessThan(2),
+      reason: '搜索图标和提示文字要在同一水平线上',
+    );
+  });
+
   testWidgets('搜索时隐藏＋卡片，清空后恢复', (tester) async {
     final controller = await _boot(_threeProfiles());
     addTearDown(controller.dispose);
