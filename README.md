@@ -32,7 +32,7 @@ A real-time voice assistant client that you host. The phone does two things — 
 
 ## Quick start
 
-1. Host the control server: you need a brain server, an OpenAI-compatible ASR transcription API, and a TTS API (host it yourself or put a compatibility layer in front). [pp-brain-server](https://github.com/thautwarm/pp-brain-server) is a reference implementation; [moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) runs TTS on an 8 GB GPU.
+1. Start a control server with [pp1](https://github.com/thautwarm/pp1).
 2. Install the app (Android arm64 or macOS Apple Silicon) and create a channel with your server URL and token.
 3. Create and import a voiceprint from the [enrollment page](https://thautwarm.github.io/zconnect/enroll/), then press the power button to start listening.
 
@@ -79,6 +79,10 @@ Record a short sample in the browser, download `spkemb.f32`, then import it in t
 | History on disk | NDJSON, split into 1 MB chunks, append-only |
 
 **Android arm64 only**, minSdk 29. **macOS 14+ on Apple Silicon** has a native voice engine (Swift + libopus/libogg + the same Rust VAD); iOS has the Dart contract only.
+
+## Custom ASR and TTS
+
+To run your own control server you need a brain server, an OpenAI-compatible ASR transcription API, and a TTS API (host it yourself or put a compatibility layer in front). [pp-brain-server](https://github.com/thautwarm/pp-brain-server) is a reference implementation; [moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) runs TTS on an 8 GB GPU.
 
 ## Build
 

@@ -32,7 +32,7 @@
 
 ## クイックスタート
 
-1. コントロールサーバーを自分でホストします。brain サーバー、OpenAI 互換の ASR 文字起こし API、TTS API（自分でホストするか、互換レイヤー経由）が必要です。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) はリファレンス実装、[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) は 8 GB の GPU で TTS を動かせます。
+1. [pp1](https://github.com/thautwarm/pp1) でコントロールサーバーを起動します。
 2. アプリ（Android arm64 または macOS Apple Silicon）をインストールし、サーバー URL とトークンを入れてチャンネルを作成します。
 3. [声紋作成ページ](https://thautwarm.github.io/zconnect/enroll/)で声紋を作成して読み込み、電源ボタンで聞き取りを開始します。
 
@@ -79,6 +79,10 @@
 | 履歴の保存 | NDJSON、1 MB ごとに分割、追記のみ |
 
 **Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**にもネイティブ音声エンジン（Swift + libopus/libogg + 同じ Rust VAD）があります。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
+
+## ASR と TTS のカスタマイズ
+
+コントロールサーバーを自分で動かすには、brain サーバー、OpenAI 互換の ASR 文字起こし API、TTS API（自分でホストするか、互換レイヤー経由）が必要です。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) はリファレンス実装、[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) は 8 GB の GPU で TTS を動かせます。
 
 ## ビルド
 
