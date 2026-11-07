@@ -30,6 +30,12 @@
   </tr>
 </table>
 
+## 快速开始
+
+1. 自己托管一个控制服务器：需要 brain server、OpenAI 兼容的 ASR 转写 API，以及一个 TTS API（自己托管或通过兼容层）。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) 是参考实现，[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) 可以在 8G 显卡上跑 TTS。
+2. 安装 App（Android arm64 或 macOS Apple Silicon），新建一个频道，填上服务器地址和 token。
+3. 在[声纹创建页](https://thautwarm.github.io/zconnect/enroll/)生成并导入声纹，然后按电源键开始听。
+
 ## 它是什么
 
 一个随时能对话的语音助手，跑在自己家里的 brain 上，数据不出自己的服务器。
@@ -77,10 +83,6 @@
 | 历史落盘 | NDJSON，按 1 MB 分片，只增不删 |
 
 **Android arm64**，minSdk 29；**macOS 14+（Apple Silicon）**也有原生语音引擎（Swift + libopus/libogg + 同一份 Rust VAD）。iOS 的 Dart 契约已就绪，原生侧没写。
-
-## 控制服务器
-
-控制服务器由你自己托管。运行它需要 brain server、一个 OpenAI 兼容的 ASR 转写 API，以及一个 TTS API（自己托管或通过兼容层）。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) 是一个参考实现；[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) 可以在 8G 显卡上部署 TTS。
 
 ## 构建
 
