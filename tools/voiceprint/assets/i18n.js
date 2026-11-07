@@ -1,4 +1,4 @@
-/* Zconnect 站点 i18n：字典 + 切换逻辑。无依赖，纯静态。
+/* Z Connect 站点 i18n：字典 + 切换逻辑。无依赖，纯静态。
  *
  * 用法：
  *   - 元素加 data-i18n="key"（textContent）或 data-i18n-html="key"（innerHTML，
@@ -18,12 +18,12 @@ window.PP_I18N = (() => {
 
   const dict = {
     zh: {
-      "meta.title.home": "Zconnect · 自托管的实时语音助手客户端",
-      "meta.desc.home": "Zconnect 是自托管的实时语音助手客户端：手机只采音放音，识别、对话、合成都在你自己的服务端运行。",
-      "meta.title.brain": "Brain API · Zconnect",
-      "meta.desc.brain": "Zconnect 客户端与服务端（brain）之间的协议：HTTP + MessagePack 的两个端点、音频格式、打断记账与重试约定。",
-      "meta.title.enroll": "声纹创建 · Zconnect",
-      "meta.desc.enroll": "在浏览器本地为 Zconnect 创建声纹：录音或选择音频文件，计算 192 维 ECAPA 声纹并导出 spkemb.f32。音频不上传。",
+      "meta.title.home": "Z Connect · 自托管的实时语音助手客户端",
+      "meta.desc.home": "Z Connect 是自托管的实时语音助手客户端：手机只采音放音，识别、对话、合成都在你自己的服务端运行。",
+      "meta.title.brain": "Brain API · Z Connect",
+      "meta.desc.brain": "Z Connect 客户端与服务端（brain）之间的协议：HTTP + MessagePack 的两个端点、音频格式、打断记账与重试约定。",
+      "meta.title.enroll": "声纹创建 · Z Connect",
+      "meta.desc.enroll": "在浏览器本地为 Z Connect 创建声纹：录音或选择音频文件，计算 192 维 ECAPA 声纹并导出 spkemb.f32。音频不上传。",
 
       "nav.home": "主页",
       "nav.brainApi": "Brain API",
@@ -36,7 +36,7 @@ window.PP_I18N = (() => {
       "h.hero.ppYou": "用户",
       "h.hero.ppUserSub": "随时开口",
       "h.hero.ppClient": "手机客户端",
-      "h.hero.ppClientSub": "Zconnect · 录音 / 放音",
+      "h.hero.ppClientSub": "Z Connect · 录音 / 放音",
       "h.hero.ppServer": "brain 服务端",
       "h.hero.ppServerSub": "消息枢纽",
       "h.hero.ppAgent": "agent",
@@ -47,7 +47,7 @@ window.PP_I18N = (() => {
       "h.hero.ppAgentPull": "人类文本",
       "h.hero.ppCaption": "Push and Pull",
       "h.hero.ppCaptionSub": "四路并行：两边各推各拉，不是一问一答。",
-      "h.hero.made": "这个项目本身的开发就是用 Zconnect 跑的：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。",
+      "h.hero.made": "这个项目本身的开发就是用 Z Connect 跑的：对着手机说话来驱动编码，需求、审查和修复一路靠语音说完。",
       "h.hero.ctaEnroll": "本地创建你的声纹并下载",
       "h.hero.ctaGithub": "GitHub 仓库",
 
@@ -119,7 +119,7 @@ window.PP_I18N = (() => {
       "h.enroll.body": "可选。声纹用来过滤别人的声音和杂音，只把你自己的话发给 agent。在浏览器里录一段话或选一个音频文件，创建 192 维声纹并下载 spkemb.f32（768 字节，float32），再到 App 的设置 → 通用 → 说话人识别里导入。录音和推理都在浏览器本地完成，音频不上传。",
       "h.enroll.button": "本地创建你的声纹并下载",
 
-      "h.footer.license": "Zconnect 是开源项目。许可证尚未确定，以仓库 README 为准。",
+      "h.footer.license": "Z Connect 是开源项目。许可证尚未确定，以仓库 README 为准。",
       "h.footer.docs": "设计、协议与交接文档见仓库的 docs/ 目录。",
 
       "b.hero.title": "Brain API",
@@ -291,12 +291,12 @@ window.PP_I18N = (() => {
     },
 
     en: {
-      "meta.title.home": "Zconnect · Self-hosted real-time voice assistant client",
-      "meta.desc.home": "Zconnect is a self-hosted real-time voice assistant client: the phone only records and plays audio; recognition, dialogue, and synthesis run on your own server.",
-      "meta.title.brain": "Brain API · Zconnect",
-      "meta.desc.brain": "The protocol between the Zconnect client and your server (the brain): two HTTP + MessagePack endpoints, audio formats, interruption accounting, and retry rules.",
-      "meta.title.enroll": "Voiceprint creation · Zconnect",
-      "meta.desc.enroll": "Create a voiceprint for Zconnect entirely in your browser: record or pick an audio file, compute a 192-dimensional ECAPA embedding, and export spkemb.f32. Audio is never uploaded.",
+      "meta.title.home": "Z Connect · Self-hosted real-time voice assistant client",
+      "meta.desc.home": "Z Connect is a self-hosted real-time voice assistant client: the phone only records and plays audio; recognition, dialogue, and synthesis run on your own server.",
+      "meta.title.brain": "Brain API · Z Connect",
+      "meta.desc.brain": "The protocol between the Z Connect client and your server (the brain): two HTTP + MessagePack endpoints, audio formats, interruption accounting, and retry rules.",
+      "meta.title.enroll": "Voiceprint creation · Z Connect",
+      "meta.desc.enroll": "Create a voiceprint for Z Connect entirely in your browser: record or pick an audio file, compute a 192-dimensional ECAPA embedding, and export spkemb.f32. Audio is never uploaded.",
 
       "nav.home": "Home",
       "nav.brainApi": "Brain API",
@@ -309,7 +309,7 @@ window.PP_I18N = (() => {
       "h.hero.ppYou": "User",
       "h.hero.ppUserSub": "just speak",
       "h.hero.ppClient": "Phone client",
-      "h.hero.ppClientSub": "Zconnect · mic / speaker",
+      "h.hero.ppClientSub": "Z Connect · mic / speaker",
       "h.hero.ppServer": "brain server",
       "h.hero.ppServerSub": "message hub",
       "h.hero.ppAgent": "agent",
@@ -320,7 +320,7 @@ window.PP_I18N = (() => {
       "h.hero.ppAgentPull": "human text",
       "h.hero.ppCaption": "Push and Pull",
       "h.hero.ppCaptionSub": "Four lanes at once: both sides push and pull, not a turn-by-turn exchange.",
-      "h.hero.made": "Zconnect was built with Zconnect itself: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.",
+      "h.hero.made": "Z Connect was built with Z Connect itself: requirements, reviews, and fixes were dictated to the coding agent by voice, through the phone.",
       "h.hero.ctaEnroll": "Create your voiceprint locally and download it",
       "h.hero.ctaGithub": "GitHub repository",
 
@@ -392,7 +392,7 @@ window.PP_I18N = (() => {
       "h.enroll.body": "Optional. The voiceprint filters out other voices and noise so only your own speech reaches the agent. Record a clip or pick an audio file in the browser to create a 192-dimensional voiceprint and download spkemb.f32 (768 bytes, float32). Import it in the app under Settings → General → Speaker verification. Recording and inference stay in the browser; audio is never uploaded.",
       "h.enroll.button": "Create your voiceprint locally and download it",
 
-      "h.footer.license": "Zconnect is an open-source project. The license is not decided yet; see the repository README.",
+      "h.footer.license": "Z Connect is an open-source project. The license is not decided yet; see the repository README.",
       "h.footer.docs": "Design, protocol, and handoff documents live in the docs/ directory of the repository.",
 
       "b.hero.title": "Brain API",
@@ -564,12 +564,12 @@ window.PP_I18N = (() => {
     },
 
     ja: {
-      "meta.title.home": "Zconnect · セルフホスト型リアルタイム音声アシスタント",
-      "meta.desc.home": "Zconnect はセルフホスト型のリアルタイム音声アシスタントクライアントです。スマホは録音と再生だけを行い、認識・対話・合成はすべて自分のサーバーで動きます。",
-      "meta.title.brain": "Brain API · Zconnect",
-      "meta.desc.brain": "Zconnect クライアントとサーバー（brain）の間のプロトコル。HTTP + MessagePack の 2 つのエンドポイント、音声フォーマット、割り込みの記帳、リトライの取り決め。",
-      "meta.title.enroll": "声紋作成 · Zconnect",
-      "meta.desc.enroll": "Zconnect の声紋をブラウザ内だけで作成します。録音または音声ファイルから 192 次元の ECAPA 声紋を計算し、spkemb.f32 を書き出します。音声はアップロードされません。",
+      "meta.title.home": "Z Connect · セルフホスト型リアルタイム音声アシスタント",
+      "meta.desc.home": "Z Connect はセルフホスト型のリアルタイム音声アシスタントクライアントです。スマホは録音と再生だけを行い、認識・対話・合成はすべて自分のサーバーで動きます。",
+      "meta.title.brain": "Brain API · Z Connect",
+      "meta.desc.brain": "Z Connect クライアントとサーバー（brain）の間のプロトコル。HTTP + MessagePack の 2 つのエンドポイント、音声フォーマット、割り込みの記帳、リトライの取り決め。",
+      "meta.title.enroll": "声紋作成 · Z Connect",
+      "meta.desc.enroll": "Z Connect の声紋をブラウザ内だけで作成します。録音または音声ファイルから 192 次元の ECAPA 声紋を計算し、spkemb.f32 を書き出します。音声はアップロードされません。",
 
       "nav.home": "ホーム",
       "nav.brainApi": "Brain API",
@@ -582,7 +582,7 @@ window.PP_I18N = (() => {
       "h.hero.ppYou": "ユーザー",
       "h.hero.ppUserSub": "いつでも話す",
       "h.hero.ppClient": "スマホアプリ",
-      "h.hero.ppClientSub": "Zconnect・録音 / 再生",
+      "h.hero.ppClientSub": "Z Connect・録音 / 再生",
       "h.hero.ppServer": "brain サーバー",
       "h.hero.ppServerSub": "メッセージの中枢",
       "h.hero.ppAgent": "エージェント",
@@ -593,7 +593,7 @@ window.PP_I18N = (() => {
       "h.hero.ppAgentPull": "人のテキスト",
       "h.hero.ppCaption": "Push and Pull",
       "h.hero.ppCaptionSub": "4 本の回線が同時に開いています。双方が push と pull をしていて、一問一答ではありません。",
-      "h.hero.made": "このプロジェクト自体の開発も Zconnect で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。",
+      "h.hero.made": "このプロジェクト自体の開発も Z Connect で回しています。スマホに向かって話すことでコーディングを駆動し、要件もレビューも修正も音声で進めました。",
       "h.hero.ctaEnroll": "声紋をローカルで作成してダウンロード",
       "h.hero.ctaGithub": "GitHub リポジトリ",
 
@@ -665,7 +665,7 @@ window.PP_I18N = (() => {
       "h.enroll.body": "任意です。声紋は他の人の声や雑音を除き、あなた自身の発話だけをエージェントに送るために使います。ブラウザで音声を録音するか音声ファイルを選ぶと、192 次元の声紋を作成して spkemb.f32（768 バイト、float32）をダウンロードできます。あとはアプリの 設定 → 一般 → 話者認識 でインポートするだけです。録音と推論はブラウザ内で完結し、音声はアップロードされません。",
       "h.enroll.button": "声紋をローカルで作成してダウンロード",
 
-      "h.footer.license": "Zconnect はオープンソースプロジェクトです。ライセンスは未定で、リポジトリの README を参照してください。",
+      "h.footer.license": "Z Connect はオープンソースプロジェクトです。ライセンスは未定で、リポジトリの README を参照してください。",
       "h.footer.docs": "設計・プロトコル・引き継ぎの文書はリポジトリの docs/ にあります。",
 
       "b.hero.title": "Brain API",
