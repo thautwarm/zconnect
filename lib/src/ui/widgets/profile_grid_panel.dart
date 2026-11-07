@@ -6,6 +6,7 @@ import '../../config/profile_group.dart';
 import '../../conversation/conversation_controller.dart';
 import '../../conversation/profile_status.dart';
 import '../channel_settings_page.dart';
+import 'adaptive_action_menu.dart';
 import 'group_name_dialog.dart';
 import 'profile_grid_card.dart';
 
@@ -496,46 +497,48 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
             ),
             const Spacer(),
             if (group != null && !_searching)
-              PopupMenuButton<_GroupAction>(
+              AdaptiveActionMenu<_GroupAction>(
                 key: ValueKey('group-menu-${group.id}'),
                 tooltip: l10n.profileGroupMenuTooltip,
-                padding: EdgeInsets.zero,
-                onSelected: (action) =>
-                    _onGroupAction(context, l10n, group, index, action),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
+                iconSize: 20,
+                width: 36,
+                height: 36,
+                items: [
+                  AdaptiveActionItem(
                     key: const ValueKey('group-menu-create'),
                     value: _GroupAction.create,
-                    child: Text(l10n.profileNewChannel),
+                    label: l10n.profileNewChannel,
+                    icon: Icons.add,
                   ),
-                  PopupMenuItem(
+                  AdaptiveActionItem(
                     key: const ValueKey('group-menu-rename'),
                     value: _GroupAction.rename,
-                    child: Text(l10n.profileGroupRename),
+                    label: l10n.profileGroupRename,
+                    icon: Icons.edit_outlined,
                   ),
-                  PopupMenuItem(
+                  AdaptiveActionItem(
                     key: const ValueKey('group-menu-move-up'),
                     value: _GroupAction.moveUp,
+                    label: l10n.profileGroupMoveUp,
+                    icon: Icons.arrow_upward,
                     enabled: index > 0,
-                    child: Text(l10n.profileGroupMoveUp),
                   ),
-                  PopupMenuItem(
+                  AdaptiveActionItem(
                     key: const ValueKey('group-menu-move-down'),
                     value: _GroupAction.moveDown,
+                    label: l10n.profileGroupMoveDown,
+                    icon: Icons.arrow_downward,
                     enabled: index >= 0 && index < groups.length - 1,
-                    child: Text(l10n.profileGroupMoveDown),
                   ),
-                  PopupMenuItem(
+                  AdaptiveActionItem(
                     key: const ValueKey('group-menu-delete'),
                     value: _GroupAction.delete,
-                    child: Text(l10n.profileGroupDelete),
+                    label: l10n.profileGroupDelete,
+                    icon: Icons.delete_outline,
                   ),
                 ],
-                child: const SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(Icons.more_horiz, size: 20),
-                ),
+                onSelected: (action) =>
+                    _onGroupAction(context, l10n, group, index, action),
               ),
           ],
         ),

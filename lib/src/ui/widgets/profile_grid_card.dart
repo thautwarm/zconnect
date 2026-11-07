@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../conversation/profile_status.dart';
+import 'adaptive_action_menu.dart';
 import 'profile_status_label.dart';
 import 'settings_widgets.dart';
 
@@ -247,10 +248,14 @@ class ProfileGridNewCard extends StatelessWidget {
   }
 }
 
-/// 卡片右下角的档案操作菜单。
+/// 卡片右下角的档案操作入口。
 ///
 /// 单独一层，和右上角的开关一样不落在主体 InkWell 里：点「更多」不会
 /// 顺带切焦点，也不会碰 enabled。
+///
+/// 操作不贴着卡片弹出，而是盖住整页、固定在底部。这样每张卡片的菜单
+/// 出现位置一致，拇指不用去追卡片所在的位置。入口仍然只有两个动作，
+/// 背景压暗由 [showModalBottomSheet] 的 barrier 负责。
 class _CardMenu extends StatelessWidget {
   const _CardMenu({super.key, required this.onEdit, required this.onMoveGroup});
 
@@ -260,9 +265,20 @@ class _CardMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<_CardAction>(
+    return AdaptiveActionMenu<_CardAction>(
       tooltip: l10n.profileCardActions,
-      padding: EdgeInsets.zero,
+      items: [
+        AdaptiveActionItem(
+          value: _CardAction.edit,
+          label: l10n.profileCardEdit,
+          icon: Icons.edit_outlined,
+        ),
+        AdaptiveActionItem(
+          value: _CardAction.moveGroup,
+          label: l10n.profileCardMoveGroup,
+          icon: Icons.folder_outlined,
+        ),
+      ],
       onSelected: (action) {
         switch (action) {
           case _CardAction.edit:
@@ -273,21 +289,6 @@ class _CardMenu extends StatelessWidget {
             break;
         }
       },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _CardAction.edit,
-          child: Text(l10n.profileCardEdit),
-        ),
-        PopupMenuItem(
-          value: _CardAction.moveGroup,
-          child: Text(l10n.profileCardMoveGroup),
-        ),
-      ],
-      child: const SizedBox(
-        width: 32,
-        height: 32,
-        child: Icon(Icons.more_horiz, size: 18),
-      ),
     );
   }
 }

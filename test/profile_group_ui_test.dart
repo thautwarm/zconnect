@@ -326,6 +326,36 @@ void main() {
     expect(find.text('已删除分组 公司，成员回到未分组'), findsOneWidget);
   });
 
+  testWidgets('手机宽度下分组菜单也是固定底部浮层', (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = await _boot();
+    final (work, _) = await _groups(controller);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    await tester.tap(_groupMenu(work.id));
+    await _settle(tester);
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byKey(const ValueKey('group-menu-create')), findsOneWidget);
+    expect(find.byKey(const ValueKey('group-menu-rename')), findsOneWidget);
+    expect(find.byKey(const ValueKey('group-menu-move-up')), findsOneWidget);
+    expect(find.byKey(const ValueKey('group-menu-move-down')), findsOneWidget);
+    expect(find.byKey(const ValueKey('group-menu-delete')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('group-menu-rename')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('算了'));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('分组菜单第一项是新建频道，保存后归入该组', (tester) async {
     _useTallView(tester);
     final controller = await _boot();

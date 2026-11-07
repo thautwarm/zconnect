@@ -238,6 +238,29 @@ void main() {
     );
   });
 
+  testWidgets('手机宽度下卡片菜单是固定底部浮层', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = await _boot(_threeProfiles());
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    await tester.tap(find.byKey(const ValueKey('profile-menu-p_a')));
+    await _settle(tester);
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('编辑频道'), findsOneWidget);
+    expect(find.text('移动到分组'), findsOneWidget);
+
+    await tester.tap(find.text('编辑频道'));
+    await tester.pumpAndSettle();
+    expect(find.text('频道设置'), findsOneWidget);
+  });
+
   testWidgets('搜索框保持紧凑，图标和提示文字竖直居中', (tester) async {
     final controller = await _boot(_threeProfiles());
     addTearDown(controller.dispose);
