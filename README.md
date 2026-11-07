@@ -74,6 +74,10 @@ Record a short sample in the browser, download `spkemb.f32`, then import it in t
 
 **Android arm64 only**, minSdk 29. **macOS 14+ on Apple Silicon** has a native voice engine (Swift + libopus/libogg + the same Rust VAD); iOS has the Dart contract only.
 
+## Self-hosted brain
+
+To self-host the control server you need a brain server, an OpenAI-compatible ASR transcription API, and a TTS API (self-hosted or behind a compatibility layer). [pp-brain-server](https://github.com/thautwarm/pp-brain-server) is a reference implementation. [moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) can run the TTS on an 8 GB GPU.
+
 ## Build
 
 Prerequisites: Flutter 3.47+, Android NDK, Rust toolchain.

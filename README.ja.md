@@ -74,6 +74,10 @@
 
 **Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**にもネイティブ音声エンジン（Swift + libopus/libogg + 同じ Rust VAD）があります。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
 
+## brain のセルフホスト
+
+コントロールサーバーをセルフホストするには、brain サーバー、OpenAI 互換の ASR 文字起こし API、そして TTS API（セルフホストまたは互換レイヤー経由）が必要です。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) はリファレンス実装です。[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) は 8 GB の GPU で TTS を動かせます。
+
 ## ビルド
 
 前提：Flutter 3.47 以上、Android NDK、Rust ツールチェーン。

@@ -78,6 +78,10 @@
 
 **Android arm64**，minSdk 29；**macOS 14+（Apple Silicon）**也有原生语音引擎（Swift + libopus/libogg + 同一份 Rust VAD）。iOS 的 Dart 契约已就绪，原生侧没写。
 
+## 自部署 brain
+
+自部署控制服务器需要 brain server、一个 OpenAI 兼容的 ASR 转写 API，以及一个 TTS API（自部署或通过兼容层）。[pp-brain-server](https://github.com/thautwarm/pp-brain-server) 是一个参考实现；[moss-tts-windowed](https://github.com/thautwarm/moss-tts-windowed) 可以在 8G 显卡上部署 TTS。
+
 ## 构建
 
 前提：Flutter 3.47 以上、Android NDK、Rust 工具链。
