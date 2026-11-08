@@ -16,11 +16,15 @@ class ProfileCompactBar extends StatelessWidget {
     required this.controller,
     required this.avatarOf,
     required this.onOpen,
+    required this.onEditFocused,
   });
 
   final ConversationController controller;
   final ImageProvider? Function(Profile profile) avatarOf;
   final VoidCallback onOpen;
+
+  /// 打开当前聚焦频道的设置页。没有聚焦频道时不会渲染这个入口。
+  final VoidCallback onEditFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +114,16 @@ class ProfileCompactBar extends StatelessWidget {
                 ),
               ],
               if (focused == null) const Spacer(),
+              if (focused != null)
+                IconButton(
+                  key: const ValueKey('focused-channel-settings'),
+                  tooltip: l10n.channelSettingsTitle,
+                  // 用铅笔而不是齿轮类图标：齿轮已经是全局设置，tune 是调试面板。
+                  // 这里编辑的是「当前这个频道」，和它们必须一眼分得开。
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onEditFocused,
+                ),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: TextButton.icon(

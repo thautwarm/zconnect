@@ -282,5 +282,8 @@
   "profileBackToMessages": "Back to messages",
   "copyCode": "Copy code",
   "copiedToClipboard": "Copied",
-  "linkOpenFailed": "Could not open this link"
+  "linkOpenFailed": "Could not open this link",
+  "rawMarkdownTooltip": "Original text",
+  "rawMarkdownTitle": "Original text",
+  "close": "Close"
 }

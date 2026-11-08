@@ -10,6 +10,7 @@ import 'package:pp_friend/src/conversation/conversation_controller.dart';
 import 'package:pp_friend/src/conversation/message.dart';
 import 'package:pp_friend/src/storage/memory_message_store.dart';
 import 'package:pp_friend/src/storage/message_store.dart';
+import 'package:pp_friend/src/ui/channel_settings_page.dart';
 import 'package:pp_friend/src/ui/home_page.dart';
 
 import 'support/test_app.dart';
@@ -31,13 +32,16 @@ AssistantConfig _twoProfiles() => const AssistantConfig(
   focusedProfileId: 'p_a',
 );
 
-Future<ConversationController> _boot(MessageStore store) async {
+Future<ConversationController> _boot(
+  MessageStore store, {
+  AssistantConfig? config,
+}) async {
   final controller = ConversationController(
     engine: FakeVoiceEngine(),
     history: store,
     appDir: () async => null,
   );
-  await controller.updateConfig(_twoProfiles());
+  await controller.updateConfig(config ?? _twoProfiles());
   return controller;
 }
 
@@ -167,6 +171,80 @@ void main() {
 
     expect(find.text('B 说的话'), findsOneWidget);
     expect(find.text('A 说的话'), findsNothing, reason: '一个档案一屏历史，不混在一起');
+  });
+
+  testWidgets('消息流可直接打开当前聚焦频道的设置页', (tester) async {
+    final controller = await _boot(MemoryMessageStore());
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    // 三个入口并存：调试、全局设置、当前频道设置。
+    expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    final entry = find.byKey(const ValueKey('focused-channel-settings'));
+    expect(entry, findsOneWidget, reason: '有聚焦频道时入口应可见');
+
+    await tester.tap(entry);
+    await _settle(tester, 12);
+
+    expect(find.byType(ChannelSettingsPage), findsOneWidget);
+    expect(find.text('频道设置'), findsOneWidget);
+    expect(
+      tester
+          .widget<ChannelSettingsPage>(find.byType(ChannelSettingsPage))
+          .profileId,
+      'p_a',
+      reason: '打开的必须是当前聚焦的频道，而不是随便一个',
+    );
+  });
+
+  testWidgets('切到另一个频道后，直接入口打开的是新聚焦频道', (tester) async {
+    final controller = await _boot(MemoryMessageStore());
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await controller.switchProfile('p_b');
+    await _settle(tester, 12);
+
+    await tester.tap(find.byKey(const ValueKey('focused-channel-settings')));
+    await _settle(tester, 12);
+
+    expect(
+      tester
+          .widget<ChannelSettingsPage>(find.byType(ChannelSettingsPage))
+          .profileId,
+      'p_b',
+      reason: '入口要跟着当前焦点走',
+    );
+  });
+
+  testWidgets('没有聚焦频道时不显示频道设置入口', (tester) async {
+    // 唯一的频道是关着的，因此没有「当前聚焦频道」。
+    const config = AssistantConfig(
+      profiles: [
+        Profile(
+          id: 'p_a',
+          name: 'A',
+          enabled: false,
+          brain: BrainConfig(baseUrl: 'http://test.local:8000', brainId: 'a'),
+        ),
+      ],
+      focusedProfileId: 'p_a',
+    );
+    final controller = await _boot(MemoryMessageStore(), config: config);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    expect(
+      find.byKey(const ValueKey('focused-channel-settings')),
+      findsNothing,
+      reason: '没有可编辑的频道时不能留一个点了没反应的入口',
+    );
+    // 网格和全局设置入口不受影响。
+    expect(find.byKey(const ValueKey('fleet-open')), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
   });
 
   testWidgets('手机端网格底部有回到消息横条', (tester) async {
@@ -417,6 +495,133 @@ void main() {
       findsOneWidget,
       reason: '必须允许交互式选择（手机长按 / 桌面拖选、右键）',
     );
+  });
+
+  testWidgets('桌面宽度下原文以居中对话框展示，关闭后仍渲染 Markdown', (tester) async {
+    final store = MemoryMessageStore();
+    await store.append('p_a', role: MessageRole.user, text: '用户的话');
+    await store.append('p_a', role: MessageRole.assistant, text: '**是粗体**');
+    final controller = await _boot(store);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    // 默认测试视口 800x600，走桌面分支。
+    expect(
+      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+      greaterThanOrEqualTo(600),
+    );
+
+    // 气泡里显示的是渲染结果，源码默认不可见。
+    expect(find.text('是粗体'), findsOneWidget);
+    expect(find.text('**是粗体**'), findsNothing);
+    expect(find.byTooltip('原文'), findsOneWidget, reason: '只有助手消息头像上方有原文入口');
+
+    await tester.tap(find.byTooltip('原文'));
+    await _settle(tester, 8);
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('原文'), findsOneWidget);
+    final source = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('raw-markdown-source')),
+    );
+    expect(source.data, '**是粗体**', reason: '浮层展示原文，而不是渲染后的文本');
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsOneWidget,
+      reason: '长原文必须放在可滚动容器里',
+    );
+    final scrollbar = tester.widget<Scrollbar>(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(Scrollbar),
+      ),
+    );
+    expect(scrollbar.thumbVisibility, isTrue, reason: '滚动条要一直可见');
+
+    await tester.tap(find.byKey(const ValueKey('raw-markdown-close')));
+    await _settle(tester, 8);
+
+    expect(find.byType(Dialog), findsNothing);
+    expect(find.text('是粗体'), findsOneWidget, reason: '关闭浮层不改动消息流');
+    expect(find.text('**是粗体**'), findsNothing);
+  });
+
+  testWidgets('手机宽度下原文以居中弹窗展示，长文本可滚动', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final longText = [
+      '**开头**',
+      '',
+      ...List.generate(40, (i) => '第 $i 行：这是一段比较长的原文内容。'),
+    ].join('\n');
+
+    final store = MemoryMessageStore();
+    await store.append('p_a', role: MessageRole.assistant, text: longText);
+    final controller = await _boot(store);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    // 手机宽度也走居中弹窗，不再从底部弹出。
+    expect(
+      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+      lessThan(600),
+    );
+
+    await tester.tap(find.byTooltip('原文'));
+    await _settle(tester, 8);
+
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('原文'), findsOneWidget);
+
+    final source = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('raw-markdown-source')),
+    );
+    expect(source.data, longText, reason: '弹窗展示完整原文');
+
+    final scrollbar = tester.widget<Scrollbar>(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(Scrollbar),
+      ),
+    );
+    expect(scrollbar.thumbVisibility, isTrue, reason: '滚动条要一直可见');
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsOneWidget,
+      reason: '长原文必须放在可滚动容器里',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('raw-markdown-close')));
+    await _settle(tester, 8);
+
+    expect(find.byType(Dialog), findsNothing);
+    expect(find.text('开头'), findsOneWidget, reason: '关闭弹窗不改动消息流');
+  });
+
+  testWidgets('用户消息没有原文入口', (tester) async {
+    final store = MemoryMessageStore();
+    await store.append('p_a', role: MessageRole.user, text: '**用户说的**');
+    final controller = await _boot(store);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+
+    expect(find.text('**用户说的**'), findsOneWidget, reason: '用户消息保持纯文本');
+    expect(find.byTooltip('原文'), findsNothing, reason: '语音转写没有 Markdown 源码可看');
   });
 
   testWidgets('助手消息的 Markdown 会渲染，用户消息里的符号保持原样', (tester) async {

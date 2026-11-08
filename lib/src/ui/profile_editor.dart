@@ -57,6 +57,10 @@ class ProfileEditorState extends State<ProfileEditor> {
   late final TextEditingController _brainId;
   late final TextEditingController _token;
 
+  /// Base URL 的焦点节点。交给 [RawAutocomplete] 管，补全浮层才能跟着
+  /// 输入框的焦点开合；控件销毁时由我们释放。
+  late final FocusNode _baseUrlFocus;
+
   late int _accent;
   late bool _enabled;
 
@@ -123,6 +127,7 @@ class ProfileEditorState extends State<ProfileEditor> {
     _baseUrl = TextEditingController();
     _brainId = TextEditingController();
     _token = TextEditingController();
+    _baseUrlFocus = FocusNode();
     _load(widget.profile);
   }
 
@@ -192,6 +197,7 @@ class ProfileEditorState extends State<ProfileEditor> {
     _baseUrl.dispose();
     _brainId.dispose();
     _token.dispose();
+    _baseUrlFocus.dispose();
     super.dispose();
   }
 
@@ -416,6 +422,85 @@ class ProfileEditorState extends State<ProfileEditor> {
 
   // ------------------------------------------------------------ 界面
 
+  /// 配置里所有频道用过的 Base URL，去空白、去空、按首次出现排序。
+  ///
+  /// 当前编辑的频道也加进来 —— 新建草稿时它还不在配置里，但地址可能已经
+  /// 填好了。这样在别的频道里用过的地址，这里直接选就行，不用重敲。
+  List<String> _knownBaseUrls() {
+    final seen = <String>{};
+    final urls = <String>[];
+    void add(String raw) {
+      final url = raw.trim();
+      if (url.isEmpty || !seen.add(url)) return;
+      urls.add(url);
+    }
+
+    for (final profile in widget.controller.config.profiles) {
+      add(profile.brain.baseUrl);
+    }
+    add(widget.profile.brain.baseUrl);
+    return urls;
+  }
+
+  /// 按输入内容过滤补全项：空串给全部，否则忽略大小写做子串匹配。
+  Iterable<String> _baseUrlOptions(TextEditingValue value) {
+    final query = value.text.trim().toLowerCase();
+    final urls = _knownBaseUrls();
+    if (query.isEmpty) return urls;
+    return urls.where((url) => url.toLowerCase().contains(query));
+  }
+
+  Widget _baseUrlOptionsView(
+    BuildContext context,
+    AutocompleteOnSelected<String> onSelected,
+    Iterable<String> options,
+  ) {
+    final items = options.toList(growable: false);
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        // 用描边而不是阴影：测试环境里阴影会被画成一圈黑边，真机上
+        // 描边也更贴近设置页里其他卡片的视觉。
+        elevation: 2,
+        shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.18),
+        color: theme.colorScheme.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: ConstrainedBox(
+          // 地址多的时候别盖住半屏，超出这个高度就滚动。
+          constraints: const BoxConstraints(maxHeight: 240),
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final url = items[index];
+              return ListTile(
+                key: ValueKey('base-url-suggestion-$url'),
+                dense: true,
+                focusColor: Colors.transparent,
+                leading: Icon(
+                  Icons.link_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                titleTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+                title: Text(url, maxLines: 1, overflow: TextOverflow.ellipsis),
+                onTap: () => onSelected(url),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -451,10 +536,20 @@ class ProfileEditorState extends State<ProfileEditor> {
         SettingsSection(
           title: 'Brain',
           children: [
-            SettingsTextField(
-              controller: _baseUrl,
-              label: l10n.baseUrlLabel,
-              hint: l10n.baseUrlHint,
+            RawAutocomplete<String>(
+              // 复用同一个 controller：脏检查、保存逻辑都看它，不能再造一份。
+              textEditingController: _baseUrl,
+              focusNode: _baseUrlFocus,
+              optionsBuilder: _baseUrlOptions,
+              optionsViewBuilder: _baseUrlOptionsView,
+              fieldViewBuilder: (context, controller, focusNode, _) {
+                return SettingsTextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  label: l10n.baseUrlLabel,
+                  hint: l10n.baseUrlHint,
+                );
+              },
             ),
             SettingsTextField(
               controller: _brainId,

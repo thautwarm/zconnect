@@ -347,5 +347,8 @@
   "profileBackToMessages": "メッセージに戻る",
   "copyCode": "コードをコピー",
   "copiedToClipboard": "コピーしました",
-  "linkOpenFailed": "このリンクを開けませんでした"
+  "linkOpenFailed": "このリンクを開けませんでした",
+  "rawMarkdownTooltip": "原文",
+  "rawMarkdownTitle": "原文",
+  "close": "閉じる"
 }

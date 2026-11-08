@@ -1731,6 +1731,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'打不开这个链接'**
   String get linkOpenFailed;
+
+  /// No description provided for @rawMarkdownTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'原文'**
+  String get rawMarkdownTooltip;
+
+  /// No description provided for @rawMarkdownTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'原文'**
+  String get rawMarkdownTitle;
+
+  /// No description provided for @close.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

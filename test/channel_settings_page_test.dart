@@ -31,6 +31,23 @@ AssistantConfig _twoProfiles() => const AssistantConfig(
   focusedProfileId: 'p_a',
 );
 
+/// 两个频道用不同的 Base URL —— 用来验证补全候选项来自现有频道。
+AssistantConfig _distinctUrlProfiles() => const AssistantConfig(
+  profiles: [
+    Profile(
+      id: 'p_a',
+      name: 'A',
+      brain: BrainConfig(baseUrl: 'http://one.local:8000', brainId: 'a'),
+    ),
+    Profile(
+      id: 'p_b',
+      name: 'B',
+      brain: BrainConfig(baseUrl: 'http://two.local:9000', brainId: 'b'),
+    ),
+  ],
+  focusedProfileId: 'p_a',
+);
+
 /// A、B 开着，C 关着 —— 用来验证编辑现有频道时的上限。
 AssistantConfig _threeProfiles() => const AssistantConfig(
   profiles: [
@@ -205,6 +222,47 @@ void main() {
       reason: '新建频道不自动切换当前频道',
     );
     expect(find.byKey(const ValueKey('host-open')), findsOneWidget, reason: '保存后回到网格');
+  });
+
+  testWidgets('Base URL 从现有频道补全，选中后直接填入', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot(config: _distinctUrlProfiles());
+    addTearDown(controller.dispose);
+
+    await _pumpPage(
+      tester,
+      ChannelSettingsPage.create(controller: controller),
+    );
+
+    final baseUrlField = _field('Base URL');
+    await tester.enterText(baseUrlField, 'one');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('http://one.local:8000'),
+      findsOneWidget,
+      reason: '输入部分内容后应出现匹配的现有地址',
+    );
+    expect(
+      find.text('http://two.local:9000'),
+      findsNothing,
+      reason: '不匹配的地址应该被过滤掉',
+    );
+
+    await tester.tap(find.text('http://one.local:8000'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(baseUrlField).controller?.text,
+      'http://one.local:8000',
+      reason: '选中补全项要写回同一个 controller',
+    );
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    final created = controller.config.profiles.last;
+    expect(created.brain.baseUrl, 'http://one.local:8000');
   });
 
   testWidgets('新建草稿不显示历史 section', (tester) async {

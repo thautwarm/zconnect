@@ -906,4 +906,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'このリンクを開けませんでした';
+
+  @override
+  String get rawMarkdownTooltip => '原文';
+
+  @override
+  String get rawMarkdownTitle => '原文';
+
+  @override
+  String get close => '閉じる';
 }

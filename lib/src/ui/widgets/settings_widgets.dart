@@ -30,6 +30,7 @@ class SettingsTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.keyboardType,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -40,12 +41,16 @@ class SettingsTextField extends StatelessWidget {
 
   final TextInputType? keyboardType;
 
+  /// 外部管理焦点时传入（比如自动补全要自己盯着这个框）。
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,

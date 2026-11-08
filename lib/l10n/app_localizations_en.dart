@@ -930,4 +930,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'Could not open this link';
+
+  @override
+  String get rawMarkdownTooltip => 'Original text';
+
+  @override
+  String get rawMarkdownTitle => 'Original text';
+
+  @override
+  String get close => 'Close';
 }

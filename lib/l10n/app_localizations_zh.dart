@@ -899,4 +899,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkOpenFailed => '打不开这个链接';
+
+  @override
+  String get rawMarkdownTooltip => '原文';
+
+  @override
+  String get rawMarkdownTitle => '原文';
+
+  @override
+  String get close => '关闭';
 }

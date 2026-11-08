@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../config/profile.dart';
 import '../conversation/conversation_controller.dart';
 import '../conversation/message.dart';
+import 'channel_settings_page.dart';
 import 'debug_page.dart';
 import 'settings_page.dart';
 import 'widgets/message_markdown.dart';
@@ -245,6 +246,24 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  /// 直接打开当前聚焦频道的设置页，不用先展开频道网格。
+  ///
+  /// 入口只在有聚焦频道时显示；这里再判一次空，避免配置在点击的同一帧
+  /// 被清掉（例如别处删除了最后一个频道）。`focusedProfileId` 是非空的，
+  /// 没有焦点时是空字符串。
+  void _openFocusedChannelSettings() {
+    final id = widget.controller.config.focusedProfileId;
+    if (id.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChannelSettingsPage.edit(
+          controller: widget.controller,
+          profileId: id,
+        ),
+      ),
+    );
+  }
+
   /// 打开频道网格前记下当前消息位置。只开关网格、没切频道时要回到这里。
   void _openFleet() {
     _fleetAnchorOffset = _scroll.hasClients ? _scroll.position.pixels : null;
@@ -285,6 +304,7 @@ class _HomePageState extends State<HomePage> {
       controller: controller,
       avatarOf: _avatarFor,
       onOpen: _openFleet,
+      onEditFocused: _openFocusedChannelSettings,
     );
 
     return Scaffold(
@@ -788,7 +808,7 @@ class _HomePageState extends State<HomePage> {
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!fromUser) _avatar(theme, Icons.graphic_eq_rounded, foreground),
+          if (!fromUser) _assistantAvatar(context, theme, message),
           Flexible(
             child: Container(
               constraints: BoxConstraints(
@@ -845,6 +865,198 @@ class _HomePageState extends State<HomePage> {
         radius: 14,
         backgroundColor: theme.colorScheme.surfaceContainerHighest,
         child: Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+
+  /// 助手头像上方的「原文」按钮。
+  ///
+  /// 按钮从上面收进头像那一列，而不是塞进气泡：气泡的宽高是消息内容说了算，
+  /// 多余控件会改变气泡形状；头像列本来就有空白，宽度也刚好容得下 28px。
+  /// 只有助手消息会走到这里 —— 用户消息是语音转写，没有 Markdown 源码。
+  Widget _assistantAvatar(
+    BuildContext context,
+    ThemeData theme,
+    ConversationMessage message,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: ValueKey('raw-markdown-${message.seq}'),
+            tooltip: l10n.rawMarkdownTooltip,
+            onPressed: () => _showRawMarkdown(context, message),
+            icon: const Icon(Icons.code_rounded, size: 14),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+            visualDensity: VisualDensity.compact,
+            style: IconButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              Icons.graphic_eq_rounded,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 打开「原文」浮层。
+  ///
+  /// 手机用带拖拽手柄的底部弹层，桌面用居中的自定义对话框；两者共用
+  /// [_RawMarkdownView]。气泡本身继续用 [MessageMarkdown] 渲染，关闭浮层
+  /// 不会改动消息流。原文可能很长（代码块、表格），所以正文放在可滚动容器里。
+  Future<void> _showRawMarkdown(
+    BuildContext context,
+    ConversationMessage message,
+  ) {
+    final theme = Theme.of(context);
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final size = MediaQuery.sizeOf(dialogContext);
+        final maxHeight = size.height * 0.72;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 620, maxHeight: maxHeight),
+            child: SizedBox(
+              width: 620,
+              child: _RawMarkdownView(
+                text: message.text,
+                maxBodyHeight: maxHeight - 100,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 「原文」浮层的共享内容：标题栏 + 可滚动的等宽文本。
+///
+/// 单独做成 [StatefulWidget] 是为了自己持有 [ScrollController]：
+/// `thumbVisibility: true` 的 [Scrollbar] 需要明确的控制器，否则会去挂到
+/// 页面的 PrimaryScrollController 上。正文用 [Expanded] 吃掉剩余高度，
+/// 浮层总高度因此保持稳定，长文本只滚动阅读区。
+class _RawMarkdownView extends StatefulWidget {
+  const _RawMarkdownView({
+    required this.text,
+    required this.maxBodyHeight,
+  });
+
+  final String text;
+
+  /// 阅读区最高能占多高；短文本按内容收缩，长文本到上限后滚动。
+  final double maxBodyHeight;
+
+  @override
+  State<_RawMarkdownView> createState() => _RawMarkdownViewState();
+}
+
+class _RawMarkdownViewState extends State<_RawMarkdownView> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    return Padding(
+      key: const ValueKey('raw-markdown-content'),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.notes_rounded,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.rawMarkdownTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('raw-markdown-close'),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  tooltip: l10n.close,
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: scheme.onSurfaceVariant,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: widget.maxBodyHeight),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Scrollbar(
+                  controller: _scroll,
+                  thumbVisibility: true,
+                  radius: const Radius.circular(8),
+                  thickness: 4,
+                  child: SingleChildScrollView(
+                    key: const ValueKey('raw-markdown-scroll'),
+                    controller: _scroll,
+                    padding: const EdgeInsets.only(right: 12),
+                    child: SelectableText(
+                      widget.text,
+                      key: const ValueKey('raw-markdown-source'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        height: 1.5,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
