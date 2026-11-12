@@ -44,12 +44,25 @@ class _HomePageState extends State<HomePage> {
   /// 换的是另一屏历史，和上一个档案的 seq 没有可比性。
   String? _lastFocusedId;
 
+  /// 上一次见到的历史读盘版本。切换频道时 `historyLoaded` 可能还是上一次
+  /// 的 true；re-load 完成后这个版本会变，据此再要求一次“回到底部”。
+  int _lastHistoryRevision = -1;
+
   /// 切了频道、还没把消息流校正到新频道底部。
   ///
   /// 新频道的历史是**异步**读进来的：切过去的那一帧可能还是空列表，
   /// 这时 `_scroll` 根本没有 viewport。所以不能只在切换的那一帧跳一次，
   /// 而要一直记着这件事，等历史落地后的下一次 build 再校正。
   bool _pendingBottomCorrection = false;
+
+  /// 校正过程中上一帧看到的最大滚动范围。
+  ///
+  /// 只跳一次是不够的：切过去的那一帧列表可能还没排完，`maxScrollExtent`
+  /// 还是 0 或旧值；跳完就清标记会停在顶部。这里等最大值连续一帧不变
+  /// 再收工。
+  double? _bottomCorrectionMaxExtent;
+  int _bottomCorrectionStableFrames = 0;
+  bool _bottomCorrectionScheduled = false;
 
   /// 打开频道网格时的滚动位置，以及那时聚焦的频道。
   ///
@@ -209,10 +222,18 @@ class _HomePageState extends State<HomePage> {
   /// 切换当下新档案的历史通常还没读出来（空态、甚至没有 ListView），
   /// 那一帧跳不了；等历史落地后 build 会再来一次。
   void _syncFocusedProfile(String id) {
-    if (id == _lastFocusedId) return;
+    final revision = widget.controller.historyRevision;
+    final sameFocus = id == _lastFocusedId;
+    if (sameFocus && revision == _lastHistoryRevision) return;
+
+    // 换频道那一帧、以及这次换频道的 re-load 完成后各来一次。后者很重要：
+    // 前一次可能是在旧历史/旧 maxScrollExtent 上校正的。
     _lastFocusedId = id;
-    _seenLastSeq = 0;
+    _lastHistoryRevision = revision;
+    if (!sameFocus) _seenLastSeq = 0;
     _pendingBottomCorrection = true;
+    _bottomCorrectionMaxExtent = null;
+    _bottomCorrectionStableFrames = 0;
   }
 
   /// 把欠下的"切换频道后回到底部"补上。
@@ -222,27 +243,47 @@ class _HomePageState extends State<HomePage> {
   /// 撑高"的中间位置。历史还没到时如果已经有列表，也先贴到底，避免用旧
   /// 频道的位置显示新频道。
   void _maybeCorrectToBottom() {
-    if (!_pendingBottomCorrection) return;
+    if (!_pendingBottomCorrection || _bottomCorrectionScheduled) return;
+    _bottomCorrectionScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bottomCorrectionScheduled = false;
       if (!mounted || !_pendingBottomCorrection) return;
       // 周期里又切走了：这时的底部属于另一个频道，交给下一次校正。
       if (_lastFocusedId != widget.controller.config.focusedProfileId) return;
 
-      final historyLoaded = widget.controller.historyLoaded;
-      final messages = widget.controller.messages;
+      // 新频道还空着（历史没读出来，或者本来就没有历史）—— 空列表没有
+      // 可挂的 viewport。**不要在这里清标记**：`historyLoaded` 可能是上一次
+      // 读盘留下的旧值，清早了等历史真正插进来就会停在顶部。等列表挂上
+      // 再校正；如果频道一直是空的，留着标记也没有副作用。
+      if (!_scroll.hasClients) return;
 
-      if (!_scroll.hasClients) {
-        // 新频道还空着（历史没读出来，或者本来就没有历史）—— 空列表没有
-        // 可挂的 viewport，底部就是顶部。历史没读完时保留标记，等它落地。
-        if (historyLoaded && messages.isEmpty) {
-          _pendingBottomCorrection = false;
-        }
+      final position = _scroll.position;
+      final max = position.maxScrollExtent;
+      position.jumpTo(max);
+
+      // `historyLoaded` 可能是上一次读盘留下的旧值。正在为切换重读历史时
+      // 先别清标记 —— 等 re-load 完成后的那次 notify 再收工。
+      final ready =
+          widget.controller.historyLoaded && !widget.controller.historyLoading;
+      if (!ready) return;
+
+      final sameMax = _bottomCorrectionMaxExtent == max;
+      _bottomCorrectionMaxExtent = max;
+      _bottomCorrectionStableFrames = sameMax
+          ? _bottomCorrectionStableFrames + 1
+          : 0;
+
+      // 历史读完，并且最大滚动范围连续一帧没变，才算真正贴到底。
+      // 中间列表还在长高时继续跳，避免跳在旧的 max 上然后停在顶部。
+      if (_bottomCorrectionStableFrames >= 1) {
+        _pendingBottomCorrection = false;
+        _bottomCorrectionMaxExtent = null;
+        _bottomCorrectionStableFrames = 0;
         return;
       }
 
-      _scroll.jumpTo(_scroll.position.maxScrollExtent);
-      // 历史已经落地，这一次就是最终位置；否则等下一次 build 再校正。
-      if (historyLoaded) _pendingBottomCorrection = false;
+      WidgetsBinding.instance.scheduleFrame();
+      _maybeCorrectToBottom();
     });
   }
 

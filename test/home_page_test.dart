@@ -89,6 +89,59 @@ class _GatedMessageStore implements MessageStore {
   Future<int> sizeBytes(String profileId) => _inner.sizeBytes(profileId);
 }
 
+/// `p_b` 第一次只返回 40 条，第二次返回全部 80 条；第二次可以卡住。
+///
+/// 用来复现“目标频道以前 loaded 过，切回去时 historyLoaded 还是旧 true，
+/// 但新历史其实还在读”的竞态。
+class _TwoPhaseMessageStore implements MessageStore {
+  _TwoPhaseMessageStore(this._inner);
+
+  final MemoryMessageStore _inner;
+  Completer<void>? secondLoadGate;
+  int _pBLoads = 0;
+
+  @override
+  Future<List<ConversationMessage>> loadRecent(
+    String profileId, {
+    int limit = 300,
+  }) async {
+    final all = await _inner.loadRecent(profileId, limit: limit);
+    if (profileId != 'p_b') return all;
+
+    _pBLoads++;
+    if (_pBLoads == 1) return all.take(40).toList(growable: false);
+    if (_pBLoads == 2) {
+      final gate = secondLoadGate;
+      if (gate != null) await gate.future;
+    }
+    return all;
+  }
+
+  @override
+  Future<List<ConversationMessage>> loadOlder(
+    String profileId, {
+    required int beforeSeq,
+    int limit = 50,
+  }) => _inner.loadOlder(profileId, beforeSeq: beforeSeq, limit: limit);
+
+  @override
+  Future<ConversationMessage> append(
+    String profileId, {
+    required MessageRole role,
+    required String text,
+    DateTime? at,
+  }) => _inner.append(profileId, role: role, text: text, at: at);
+
+  @override
+  Future<int> lastSeq(String profileId) => _inner.lastSeq(profileId);
+
+  @override
+  Future<void> clear(String profileId) => _inner.clear(profileId);
+
+  @override
+  Future<int> sizeBytes(String profileId) => _inner.sizeBytes(profileId);
+}
+
 /// 主界面里那个说话按钮一直在呼吸（无限动画），
 /// 所以**不能用 pumpAndSettle** —— 它永远等不到静止，会直接超时。
 Future<void> _settle(WidgetTester tester, [int frames = 8]) async {
@@ -417,6 +470,55 @@ void main() {
       position.pixels,
       closeTo(position.maxScrollExtent, 1),
       reason: '历史异步加载完成后要再次校正到底部',
+    );
+  });
+
+  testWidgets('切到以前打开过的频道时，历史重读完成后再回到底部', (tester) async {
+    final inner = MemoryMessageStore();
+    for (var i = 1; i <= 40; i++) {
+      await inner.append('p_a', role: MessageRole.user, text: 'A 第 $i 条');
+    }
+    for (var i = 1; i <= 80; i++) {
+      await inner.append('p_b', role: MessageRole.user, text: 'B 第 $i 条');
+    }
+    final store = _TwoPhaseMessageStore(inner);
+    final controller = await _boot(store);
+    addTearDown(controller.dispose);
+    await _pumpHome(tester, controller);
+
+    // 第一次切到 B：只读到 40 条，但 loaded 已经变 true。
+    await controller.switchProfile('p_b');
+    await _settle(tester, 12);
+
+    // 回 A，然后第二次切 B 时卡住读盘。此时 B 的 historyLoaded 仍是 true，
+    // 主界面不能拿这个旧值提前收工。
+    await controller.switchProfile('p_a');
+    await _settle(tester, 12);
+    final beforeSecondB = controller.historyRevision;
+
+    store.secondLoadGate = Completer<void>();
+    final switching = controller.switchProfile('p_b');
+    await _settle(tester, 12);
+    expect(controller.historyLoading, isTrue);
+    expect(
+      controller.historyRevision,
+      beforeSecondB,
+      reason: '读盘没完成前版本号不能前进',
+    );
+
+    // 第二次读盘返回 80 条。内容变高后必须再校正一次，而不是停在旧 max。
+    store.secondLoadGate!.complete();
+    await switching;
+    await _settle(tester, 12);
+
+    expect(controller.historyLoading, isFalse);
+    expect(controller.historyRevision, greaterThan(beforeSecondB));
+    final position = _listPosition(tester);
+    expect(position.maxScrollExtent, greaterThan(0));
+    expect(
+      position.pixels,
+      closeTo(position.maxScrollExtent, 1),
+      reason: 're-load 完成后要重新校正到底部',
     );
   });
 

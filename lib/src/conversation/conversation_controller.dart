@@ -291,7 +291,13 @@ class ConversationController extends ChangeNotifier {
     await refreshVoiceprint();
     // 先把聚焦档案的历史读出来，这样一打开 App 就看得见上次聊到哪儿了，
     // 不用等到点"开始对话"。
-    await focused?.load();
+    _historyLoading = true;
+    try {
+      await focused?.load();
+    } finally {
+      _historyLoading = false;
+    }
+    _historyRevision++;
     notifyListeners();
   }
 
@@ -335,7 +341,13 @@ class ConversationController extends ChangeNotifier {
     // focusedProfileId），新聚焦那个档案的历史得读进来。消息窗口是懒加载的，
     // 不主动读的话切过去会看到一片空白。
     if (_config.focusedProfileId != previousFocus) {
-      await focused?.load();
+      _historyLoading = true;
+      try {
+        await focused?.load();
+      } finally {
+        _historyLoading = false;
+      }
+      _historyRevision++;
     }
     notifyListeners();
     await _store.save(_config);
@@ -673,6 +685,23 @@ class ConversationController extends ChangeNotifier {
   /// 冷启动会先闪一句"直接说话就行"，下一帧历史才冒出来。
   bool get historyLoaded => focused?.loaded ?? false;
 
+  /// 正在为当前聚焦档案重读历史。
+  ///
+  /// [historyLoaded] 只说明"上一次读完了没有"。切到一个以前打开过的档案时，
+  /// 它会一直是 true，但 [ProfileRuntime.load] 还在重新读盘；界面如果只看
+  /// [historyLoaded] 就以为可以校正到底部，会在旧内容上跳一次然后清标记，
+  /// 等新历史落地就停在顶部。这个标志让界面等这次读盘结束再收工。
+  bool _historyLoading = false;
+  bool get historyLoading => _historyLoading;
+
+  /// 成功为当前聚焦档案重读一次历史的次数。
+  ///
+  /// 切换频道时 `historyLoaded` 可能从上次读盘起就是 true；界面只看它
+  /// 会在旧内容上校正一次。这个计数在每次 load 完成后变化，主界面据此
+  /// 重新要求“回到新历史底部”。
+  int _historyRevision = 0;
+  int get historyRevision => _historyRevision;
+
   /// 某个档案头像的绝对路径。没设头像、或者拿不到应用目录，返回 null。
   ///
   /// **同步、不查文件**：这个方法会在每帧 build 里被调用。文件真丢了
@@ -721,11 +750,19 @@ class ConversationController extends ChangeNotifier {
     if (_config.focusedProfileId != from) return; // 焦点已经被别人改掉了
 
     _config = _config.copyWith(focusedProfileId: id);
+    // 先通知界面切过去（可以先把旧列表让出来），同时标上"新历史还在读"，
+    // 避免主界面拿上一次的 loaded 当成本次已完成。
+    _historyLoading = true;
     _bumpFleet();
     notifyListeners();
 
     // 换一整屏历史。后台那段时间攒的消息没有进内存窗口，所以要重新读盘。
-    await runtime.load();
+    try {
+      await runtime.load();
+    } finally {
+      _historyLoading = false;
+    }
+    _historyRevision++;
     notifyListeners();
 
     await _store.save(_config);
