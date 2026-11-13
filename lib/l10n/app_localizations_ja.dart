@@ -865,6 +865,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileGroupMenuTooltip => 'グループ操作';
 
   @override
+  String get profileGroupCollapse => 'グループを折りたたむ';
+
+  @override
+  String get profileGroupExpand => 'グループを展開';
+
+  @override
   String get profileCardActions => 'チャンネル操作';
 
   @override

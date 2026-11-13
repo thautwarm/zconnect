@@ -858,6 +858,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileGroupMenuTooltip => '分组操作';
 
   @override
+  String get profileGroupCollapse => '收起分组';
+
+  @override
+  String get profileGroupExpand => '展开分组';
+
+  @override
   String get profileCardActions => '频道操作';
 
   @override

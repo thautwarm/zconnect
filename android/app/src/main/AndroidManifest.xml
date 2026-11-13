@@ -10,6 +10,8 @@
          网络被内核层按 uid 掐断，dart:io 的每个连接都直接失败：表现就是
          debug 能对话、release 一声不吭，而且没有任何报错线索。 -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 读取当前 Wi-Fi 链路上配置的代理（ProxyPlugin）。 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

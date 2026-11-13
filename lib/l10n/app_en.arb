@@ -270,6 +270,8 @@
   "profileSearchHint": "Search channels",
   "profileSearchEmpty": "No matching channels",
   "profileGroupMenuTooltip": "Group actions",
+  "profileGroupCollapse": "Collapse group",
+  "profileGroupExpand": "Expand group",
   "profileCardActions": "Channel actions",
   "profileCardEdit": "Edit channel",
   "profileCardMoveGroup": "Move to group",

@@ -27,11 +27,18 @@ class ProfileGridPanel extends StatefulWidget {
     required this.controller,
     required this.avatarOf,
     required this.onClose,
+    required this.collapsedGroupIds,
+    required this.onToggleGroup,
   });
 
   final ConversationController controller;
   final ImageProvider? Function(Profile profile) avatarOf;
   final VoidCallback onClose;
+
+  /// 被收起的组 id（未分组用 `_ungrouped`）。状态由宿主页面持有，
+  /// 关闭网格再打开还能保持。
+  final Set<String> collapsedGroupIds;
+  final ValueChanged<String> onToggleGroup;
 
   @override
   State<ProfileGridPanel> createState() => _ProfileGridPanelState();
@@ -384,9 +391,23 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
               !_searching &&
               (filter == _allGroups || filter == _ungrouped);
 
+          final groupKey = _bucketKey(bucket.group);
+          // 搜索时始终展开：收起的分组里如果藏着匹配项，用户会以为搜不到。
+          final collapsed =
+              !_searching && widget.collapsedGroupIds.contains(groupKey);
+
           slivers.add(
-            SliverToBoxAdapter(child: _groupHeader(context, l10n, bucket)),
+            SliverToBoxAdapter(
+              child: _groupHeader(
+                context,
+                l10n,
+                bucket,
+                groupKey: groupKey,
+                collapsed: collapsed,
+              ),
+            ),
           );
+          if (collapsed) continue;
           if (bucket.statuses.isEmpty && !showPlus) {
             slivers.add(
               SliverToBoxAdapter(
@@ -437,8 +458,10 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
   Widget _groupHeader(
     BuildContext context,
     AppLocalizations l10n,
-    _Bucket bucket,
-  ) {
+    _Bucket bucket, {
+    required String groupKey,
+    required bool collapsed,
+  }) {
     final theme = Theme.of(context);
     final group = bucket.group;
     final groups = _controller.profileGroups;
@@ -469,33 +492,72 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
                   ),
                 ),
               ),
-            Text(
-              group == null ? l10n.profileUngrouped : _groupName(l10n, group),
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              key: ValueKey(
-                group == null
-                    ? 'group-header-count-$_ungrouped'
-                    : 'group-header-count-${group.id}',
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '${bucket.statuses.length}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSecondaryContainer,
-                  fontWeight: FontWeight.w600,
+            Expanded(
+              child: Semantics(
+                button: !_searching,
+                expanded: !collapsed,
+                label: _searching
+                    ? null
+                    : '${group == null ? l10n.profileUngrouped : _groupName(l10n, group)}，'
+                          '${collapsed ? l10n.profileGroupExpand : l10n.profileGroupCollapse}',
+                child: InkWell(
+                  key: ValueKey('group-toggle-$groupKey'),
+                  onTap: _searching
+                      ? null
+                      : () => widget.onToggleGroup(groupKey),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          group == null
+                              ? l10n.profileUngrouped
+                              : _groupName(l10n, group),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        key: ValueKey(
+                          group == null
+                              ? 'group-header-count-$_ungrouped'
+                              : 'group-header-count-${group.id}',
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${bucket.statuses.length}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (!_searching) ...[
+                        const SizedBox(width: 2),
+                        Icon(
+                          collapsed
+                              ? Icons.expand_more_rounded
+                              : Icons.expand_less_rounded,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
             if (group != null && !_searching)
               AdaptiveActionMenu<_GroupAction>(
                 key: ValueKey('group-menu-${group.id}'),
@@ -1021,6 +1083,13 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
   ) {
     var offset = 0.0;
     for (final bucket in buckets) {
+      // 收起的分组只有标题，没有网格；不能把它的卡片高度算进来，否则
+      // 后面分组的聚焦卡片会被滚到一个不存在的位置。
+      if (widget.collapsedGroupIds.contains(_bucketKey(bucket.group))) {
+        offset += _groupHeaderHeight;
+        continue;
+      }
+
       final index = bucket.statuses.indexWhere(
         (status) => status.focused && status.profile.id == focusedId,
       );
@@ -1068,6 +1137,8 @@ class _ProfileGridPanelState extends State<ProfileGridPanel> {
     ].join(' ').toLowerCase();
     return haystack.contains(query);
   }
+
+  String _bucketKey(ProfileGroup? group) => group?.id ?? _ungrouped;
 
   List<_Bucket> _buckets(
     List<ProfileStatus> statuses,

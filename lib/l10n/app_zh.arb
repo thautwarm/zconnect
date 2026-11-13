@@ -413,6 +413,8 @@
   "profileSearchHint": "搜索频道",
   "profileSearchEmpty": "没有匹配的频道",
   "profileGroupMenuTooltip": "分组操作",
+  "profileGroupCollapse": "收起分组",
+  "profileGroupExpand": "展开分组",
   "profileCardActions": "频道操作",
   "profileCardEdit": "编辑频道",
   "profileCardMoveGroup": "移动到分组",

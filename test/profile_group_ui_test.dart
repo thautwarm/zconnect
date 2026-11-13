@@ -131,6 +131,45 @@ void main() {
     expect(_card('p_c'), findsOneWidget);
   });
 
+  testWidgets('组标题可以收起/展开，搜索时自动展开', (tester) async {
+    _useTallView(tester);
+    final controller = await _boot();
+    final (work, _) = await _groups(controller);
+    addTearDown(controller.dispose);
+
+    await _pumpHome(tester, controller);
+    await _openFleet(tester);
+
+    final toggle = find.byKey(ValueKey('group-toggle-${work.id}'));
+    expect(toggle, findsOneWidget);
+    expect(_card('p_a'), findsOneWidget);
+    expect(_card('p_b'), findsOneWidget);
+
+    await tester.tap(toggle);
+    await _settle(tester);
+    expect(_card('p_a'), findsNothing, reason: '收起后组内卡片不再构建');
+    expect(_header(work.id), findsOneWidget, reason: '组标题还要在，才能再展开');
+    expect(_card('p_b'), findsOneWidget, reason: '别的组不受影响');
+
+    // 关掉网格再打开，折叠状态还在。
+    await tester.tap(find.byKey(const ValueKey('fleet-close')));
+    await _settle(tester);
+    await _openFleet(tester);
+    expect(_card('p_a'), findsNothing);
+
+    // 搜索时自动展开，否则会让人以为搜不到。
+    await _enterSearch(tester, 'A');
+    expect(_card('p_a'), findsOneWidget);
+
+    // 清空搜索后恢复折叠。
+    await _enterSearch(tester, '');
+    expect(_card('p_a'), findsNothing);
+
+    await tester.tap(toggle);
+    await _settle(tester);
+    expect(_card('p_a'), findsOneWidget, reason: '再点一次展开');
+  });
+
   testWidgets('分组 chip 和标题的频道数量都用独立 badge 展示', (tester) async {
     _useTallView(tester);
     final controller = await _boot();

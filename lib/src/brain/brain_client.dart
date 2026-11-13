@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:msgpack_dart/msgpack_dart.dart' as msgpack;
 
+import '../network/proxy_client.dart';
+
 /// `/human-to-brain` 的返回：人说的话的文本。
 class HumanToBrainResult {
   const HumanToBrainResult(this.text);
@@ -139,7 +141,8 @@ class BrainClient {
   /// 即使它从来没发过请求。所以真正第一次发请求时才创建。
   http.Client? _client;
 
-  http.Client get _http => _client ??= _injectedClient ?? http.Client();
+  http.Client get _http =>
+      _client ??= _injectedClient ?? createProxyAwareClient();
 
   /// 还没结束的 `/brain-to-human` 连接。abort() 要逐个取消。
   final Set<_ReplyConnection> _activeConnections = <_ReplyConnection>{};

@@ -889,6 +889,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileGroupMenuTooltip => 'Group actions';
 
   @override
+  String get profileGroupCollapse => 'Collapse group';
+
+  @override
+  String get profileGroupExpand => 'Expand group';
+
+  @override
   String get profileCardActions => 'Channel actions';
 
   @override

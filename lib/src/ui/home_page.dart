@@ -97,6 +97,16 @@ class _HomePageState extends State<HomePage> {
   /// 是否正在看档案网格。它是 `HomePage` 的本地状态，不是路由/新页面。
   bool _fleetExpanded = false;
 
+  /// 网格里被收起的组。放在 HomePage 里，关掉网格再打开还保持折叠；
+  /// 组 id 用 `_ungrouped` 哨兵表示未分组。
+  final Set<String> _collapsedGroups = <String>{};
+
+  void _toggleGroupCollapsed(String groupId) {
+    setState(() {
+      if (!_collapsedGroups.remove(groupId)) _collapsedGroups.add(groupId);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -380,6 +390,8 @@ class _HomePageState extends State<HomePage> {
                 controller: controller,
                 avatarOf: _avatarFor,
                 onClose: _closeFleet,
+                collapsedGroupIds: _collapsedGroups,
+                onToggleGroup: _toggleGroupCollapsed,
               )
             : AnimatedBuilder(
                 animation: controller,

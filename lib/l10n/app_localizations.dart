@@ -1654,6 +1654,18 @@ abstract class AppLocalizations {
   /// **'分组操作'**
   String get profileGroupMenuTooltip;
 
+  /// No description provided for @profileGroupCollapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起分组'**
+  String get profileGroupCollapse;
+
+  /// No description provided for @profileGroupExpand.
+  ///
+  /// In zh, this message translates to:
+  /// **'展开分组'**
+  String get profileGroupExpand;
+
   /// No description provided for @profileCardActions.
   ///
   /// In zh, this message translates to:

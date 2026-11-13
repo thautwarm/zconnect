@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
 import 'src/conversation/conversation_controller.dart';
 import 'src/i18n/locale_controller.dart';
+import 'src/network/system_proxy.dart';
 import 'src/ui/home_page.dart';
 import 'src/ui/onboarding_page.dart';
 import 'src/voice/mic_permission.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Dart 的 HttpClient 默认不走系统代理。Android 的 Wi-Fi 自定义代理要
+  // 先读出来，BrainClient 创建时才能把它交给 findProxy。
+  await SystemProxy.load();
   // 首次启动先过一遍权限检查：麦克风和 macOS 的本地网络都不是"点了就会
   // 自动有"的东西，让用户自己去找系统设置太难了。
   var onboardingDone = false;
@@ -31,7 +37,8 @@ class PpFriendApp extends StatefulWidget {
   State<PpFriendApp> createState() => _PpFriendAppState();
 }
 
-class _PpFriendAppState extends State<PpFriendApp> {
+class _PpFriendAppState extends State<PpFriendApp>
+    with WidgetsBindingObserver {
   late final ConversationController _controller;
   late final LocaleController _locale;
   late bool _showOnboarding = widget.showOnboarding;
@@ -41,6 +48,7 @@ class _PpFriendAppState extends State<PpFriendApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = ConversationController()
       ..permissionGate = _requestPermissions;
     // 配置是异步读的，先渲染再补上，避免卡在启动画面
@@ -51,9 +59,19 @@ class _PpFriendAppState extends State<PpFriendApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _locale.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Wi-Fi 代理可能在后台被改过（换网络、改代理设置），回前台时重读。
+    // 请求侧的 findProxy 每次现读 authority，所以已建好的 client 也会生效。
+    if (state == AppLifecycleState.resumed) {
+      unawaited(SystemProxy.load());
+    }
   }
 
   /// 麦克风必须给；通知在 Android 13+ 决定前台服务那条常驻通知能否显示，

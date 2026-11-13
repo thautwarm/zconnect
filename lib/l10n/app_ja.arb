@@ -335,6 +335,8 @@
   "profileSearchHint": "チャンネルを検索",
   "profileSearchEmpty": "一致するチャンネルがありません",
   "profileGroupMenuTooltip": "グループ操作",
+  "profileGroupCollapse": "グループを折りたたむ",
+  "profileGroupExpand": "グループを展開",
   "profileCardActions": "チャンネル操作",
   "profileCardEdit": "チャンネルを編集",
   "profileCardMoveGroup": "グループへ移動",
