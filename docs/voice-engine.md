@@ -1,6 +1,6 @@
 # Android 原生语音引擎
 
-范围：**只做 Android**。iOS 以后补，Dart 接口不变。
+范围：**Android / macOS / Windows**。iOS 以后补，Dart 接口不变。
 
 ---
 
@@ -110,7 +110,7 @@ macOS 走的是**同一套 Dart 契约和通道名**，原生实现在 `macos/Ru
 | `AudioSupport.swift` | `MicFramer`、`PlaybackTimeline`、RMS —— 不依赖 AVFoundation |
 | `OggOpusCodec.swift` | 流式 Ogg Opus 解码、上行 Ogg Opus 编码（libopus + libogg） |
 
-关键语义（以后 Windows/Linux 照这个实现）：
+关键语义（Windows 已按这个实现；Linux 以后照这个实现）：
 
 - 采集固定切成 **20ms 一帧的 mono PCM16LE**；`format.channels` 恒为 1，
   `framesPerChunk = sampleRate / 50`。
@@ -141,6 +141,50 @@ Dart 侧没有 macOS 分支。
 平台分支只允许出现在两个地方：`lib/src/voice/mic_permission.dart`（macOS
 用原生 `AVCaptureDevice`，其余平台回落 `permission_handler`）和上面的原生
 runner。controller/UI 不应该出现 `Platform.isMacOS`。
+
+## Windows 实现说明
+
+Windows 走同一套 Dart 契约和通道名，原生实现在 `windows/runner/voice/`：
+
+| 文件 | 职责 |
+| --- | --- |
+| `voice_engine_plugin.cpp` | 四条 channel、方法分发、麦克风权限/设置页 |
+| `win_voice_engine.cpp` | miniaudio（WASAPI shared mode）duplex 采集/播放、epoch/flush/head/backlog、AEC 接线 |
+| `ogg_opus_codec.cpp` | Ogg Opus 流式解码、上行编码（libopus + libogg） |
+| `audio_support.cpp` | RMS 电平 |
+
+关键语义：
+
+- 统一 **16 kHz / mono / int16**，20ms 一帧（320 samples）。Dart 侧按这个格式
+  重采样上行和下行的 TTS；Windows 原生不再做第二套采样率协商。
+- 采集和播放用 miniaudio 的 `ma_device_type_duplex`，WASAPI shared mode，
+  不用 communications 模式（避免系统 APO 再挂一套 AEC）。
+- 回声消除用 Windows 自带的 **Voice Capture DSP**：`CLSID_CWMAudioAEC`
+  （`mfwmaaec.dll`），filter mode，两路输入：
+  - stream 0：麦克风；
+  - stream 1：我们正在写入播放设备的 PCM（不是 WASAPI loopback）。
+
+  这样只消自己的 TTS，不会把用户正在播放的音乐也消掉。DMO 跑在独立的
+  MTA 线程上，音频回调只投递成对的 `(mic, reference)` 20ms 块。
+- DMO 初始化失败（N 版缺 Media Feature Pack、精简系统、驱动异常）时自动
+  退回**半双工**：播放期间门控麦克风，用户仍可用界面上的停止按钮打断。
+- 播放头按“从上次 flush 起实际从队列里播出的采样数”计算；flush 归零，
+  和 Android/macOS 的语义一致。
+- `startService`/`stopService` 是 no-op；Windows 没有前台服务概念。
+- 麦克风权限：首次采集时由系统隐私开关决定；`openMicSettings` 打开
+  `ms-settings:privacy-microphone`。`permission_handler_windows` 对
+  microphone 一律返回 granted，不能作为真实权限判断。
+
+构建：
+
+```powershell
+pwsh -File tools/build_windows.ps1   # miniaudio + libopus/libogg + Rust DLL + ORT
+flutter build windows --release
+```
+
+产物目录 `build\windows\x64\runner\Release` 需要包含
+`pp_friend.exe`、`rust_lib_pp_friend.dll`、`onnxruntime.dll` 和
+`data/flutter_assets`。CI 的 `windows` job 会验证这些文件并打 zip。
 
 ## iOS 以后要补什么
 

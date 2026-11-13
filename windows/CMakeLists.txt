@@ -81,6 +81,22 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
+# Rust VAD / ONNX Runtime。由 tools/build_windows.ps1 生成到 windows/Vendor。
+# 必须用 install(FILES) 而不是 install(CODE)：Flutter 的 CMAKE_INSTALL_PREFIX
+# 是 $<TARGET_FILE_DIR:...>，install(FILES) 会在生成期解析它，CODE 里不会。
+set(NATIVE_VENDOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Vendor")
+set(NATIVE_DLLS
+  "${NATIVE_VENDOR_DIR}/rust_lib_pp_friend.dll"
+  "${NATIVE_VENDOR_DIR}/onnxruntime.dll")
+foreach(native_dll ${NATIVE_DLLS})
+  if(NOT EXISTS "${native_dll}")
+    message(FATAL_ERROR
+      "缺少 ${native_dll}。先在仓库根目录运行：pwsh -File tools/build_windows.ps1")
+  endif()
+endforeach()
+install(FILES ${NATIVE_DLLS}
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}" COMPONENT Runtime)
+
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"

@@ -33,7 +33,7 @@
 ## 快速开始
 
 1. 用 [pp1](https://github.com/thautwarm/pp1) 启动控制服务器。
-2. 安装 App（Android arm64 或 macOS Apple Silicon），新建一个频道，填上服务器地址和 token。
+2. 安装 App（Android arm64、macOS Apple Silicon 或 Windows 10/11 x64），新建一个频道，填上服务器地址和 token。
 3. 在[声纹创建页](https://thautwarm.github.io/zconnect/enroll/)生成并导入声纹，然后按电源键开始听。
 
 ## 它是什么
@@ -76,13 +76,13 @@
 | UI / 业务 | Flutter（Dart 3.13） |
 | 本地断句 | Rust + Silero VAD，flutter_rust_bridge 2.13 |
 | 声纹门控 | Rust + ECAPA 声纹余弦（int8 ONNX，23 MB）；声纹由 `tools/voiceprint` 网页生成 |
-| 音频引擎 | Android 原生（Kotlin）：AudioRecord / AudioTrack / AEC；macOS 原生（Swift）：AVAudioEngine + VPIO AEC |
+| 音频引擎 | Android 原生（Kotlin）：AudioRecord / AudioTrack / AEC；macOS 原生（Swift）：AVAudioEngine + VPIO AEC；Windows 原生（C++）：WASAPI + Voice Capture DSP AEC |
 | 上行编码 | Ogg Opus 16 kHz（MediaCodec + MediaMuxer） |
 | 下行解码 | 连续 Ogg Opus 24 kHz（手写增量解析 + MediaCodec）→ 重采样到 16 kHz |
 | 与服务端通信 | HTTP + MessagePack；上行一问一答，下行前导（文本）+ 连续音频流 |
 | 历史落盘 | NDJSON，按 1 MB 分片，只增不删 |
 
-**Android arm64**，minSdk 29；**macOS 14+（Apple Silicon）**也有原生语音引擎（Swift + libopus/libogg + 同一份 Rust VAD）。iOS 的 Dart 契约已就绪，原生侧没写。
+**Android arm64**，minSdk 29；**macOS 14+（Apple Silicon）**和 **Windows 10/11 x64** 也有原生语音引擎（分别是 Swift/AVAudioEngine 与 C++/WASAPI，都带 libopus/libogg 和同一份 Rust VAD）。Windows 用系统自带的 Voice Capture DSP 做回声消除，不可用时自动退回半双工。iOS 的 Dart 契约已就绪，原生侧没写。
 
 ## 自定义 ASR 和 TTS
 
@@ -111,13 +111,26 @@ tools/build_rust_macos.sh   # Rust VAD dylib + ONNX Runtime → macos/Frameworks
 flutter build macos --release
 ```
 
+Windows 10/11 x64。需要 Visual Studio 2022 Build Tools（C++ 工作负载）、
+Rust，以及用于 Flutter 插件符号链接的开发者模式。然后：
+
+```powershell
+pwsh -File tools/build_windows.ps1   # miniaudio + libopus/libogg + Rust DLL + ORT
+flutter build windows --release
+```
+
+产物在 `build\windows\x64\runner\Release`；发布工作流会把这个目录打成
+`zconnect-<版本>-windows-x64.zip`。Windows 包没有代码签名，首次启动可能被
+SmartScreen 拦一下。
+
 ## 发布
 
 GitHub Actions（`.github/workflows/build-release.yml`）会在每次推送到 `main`、
 每个 Pull Request 和手动触发时运行 `flutter analyze`、`flutter test`，
 然后在 `ubuntu-latest` 上构建 arm64-v8a 的 release APK，在 `macos-14` 上
-构建 Apple Silicon 的 macOS app 并跑 XCTest。两者都作为工作流产物上传，
-但只有 APK 会进入 GitHub Release。
+构建 Apple Silicon 的 macOS app 并跑 XCTest，在 `windows-latest` 上构建
+Windows x64 包。三者都作为工作流产物上传；APK、macOS app 和 Windows zip
+都会进入 GitHub Release。
 
 要发布 GitHub Release，推一个标签（和 `pubspec.yaml` 里的版本保持一致）：
 

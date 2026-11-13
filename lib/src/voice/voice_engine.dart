@@ -12,6 +12,7 @@ class AudioFormat {
     required this.sampleRate,
     required this.channels,
     required this.framesPerChunk,
+    this.aecActive = true,
   });
 
   final int sampleRate;
@@ -19,6 +20,10 @@ class AudioFormat {
 
   /// 每个 micPcm 事件大约包含多少帧（不是精确保证，最后一个事件可能更短）。
   final int framesPerChunk;
+
+  /// 原生回声消除是否可用。Windows 在 Voice Capture DSP 不可用时会退回
+  /// 半双工，并通过 startAudio 的返回值把状态带上来；其他平台恒为 true。
+  final bool aecActive;
 
   int get bytesPerFrame => channels * 2;
 
@@ -29,10 +34,13 @@ class AudioFormat {
     sampleRate: (map['sampleRate'] as num).toInt(),
     channels: (map['channels'] as num).toInt(),
     framesPerChunk: (map['framesPerChunk'] as num).toInt(),
+    aecActive: map['aecActive'] as bool? ?? true,
   );
 
   @override
-  String toString() => '${sampleRate}Hz/${channels}ch/${framesPerChunk}frames';
+  String toString() =>
+      '${sampleRate}Hz/${channels}ch/${framesPerChunk}frames'
+      '${aecActive ? '' : ' / 半双工（AEC 不可用）'}';
 }
 
 /// 双讲检测所需的两个电平。单位 dBFS，静默为 -120。

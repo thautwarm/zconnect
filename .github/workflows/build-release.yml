@@ -21,6 +21,9 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.7"
+  # Windows 语音插件用到 FlutterEngine::PostPlatformThreadTask（事件从音频线程
+  # 回到平台线程）。本地在 3.47.9 上验证过，固定到同一版本。
+  FLUTTER_VERSION_WINDOWS: "3.47.9"
   ANDROID_PLATFORM: "36"
   ANDROID_BUILD_TOOLS: "36.0.0"
   # Preinstalled on the ubuntu-latest image. Keep it explicit so `flutter`
@@ -240,10 +243,120 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  windows:
+    name: Build Windows x64 app
+    runs-on: windows-latest
+    steps:
+      # Flutter 的 Windows 构建在 pub get / 插件构建阶段会创建符号链接，
+      # 普通会话需要开发者模式。必须在 checkout 和 pub get 之前打开；
+      # 两个注册表值重复写入是幂等的。
+      - name: Enable Windows Developer Mode
+        shell: pwsh
+        run: |
+          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+          if (-not (Test-Path $key)) {
+            New-Item -Path $key -Force | Out-Null
+          }
+          New-ItemProperty -Path $key -Name AllowDevelopmentWithoutDevLicense `
+            -Value 1 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $key -Name AllowAllTrustedApps `
+            -Value 1 -PropertyType DWord -Force | Out-Null
+          Get-ItemProperty -Path $key |
+            Select-Object AllowDevelopmentWithoutDevLicense, AllowAllTrustedApps |
+            Format-List
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION_WINDOWS }}
+          channel: stable
+          cache: true
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94.1"
+          targets: x86_64-pc-windows-msvc
+
+      - name: Set up Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: x86_64-pc-windows-msvc
+
+      # miniaudio 头文件、ogg/opus 静态库、Rust DLL 和 ORT 都由脚本生成。
+      - name: Cache native dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            windows/Vendor
+            windows/.build
+          key: windows-native-${{ hashFiles('tools/fetch_miniaudio.ps1', 'tools/build_opus_windows.ps1', 'tools/build_rust_windows.ps1') }}
+
+      - name: Build native dependencies
+        shell: pwsh
+        run: pwsh -File tools/build_windows.ps1
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build release app
+        run: flutter build windows --release
+
+      - name: Verify bundle
+        shell: pwsh
+        run: |
+          $release = 'build/windows/x64/runner/Release'
+          $required = @(
+            'pp_friend.exe',
+            'rust_lib_pp_friend.dll',
+            'onnxruntime.dll',
+            'data/flutter_assets'
+          )
+          foreach ($rel in $required) {
+            $path = Join-Path $release $rel
+            if (-not (Test-Path $path)) {
+              Write-Host "::error::缺少 $path"
+              exit 1
+            }
+            Write-Host "    ok: $rel"
+          }
+
+      - name: Read app version
+        id: version
+        shell: pwsh
+        run: |
+          $line = Select-String -Path pubspec.yaml -Pattern '^version:\s*(.+?)\s*$' |
+            Select-Object -First 1
+          if (-not $line) {
+            Write-Host '::error::pubspec.yaml 里读不到 version'
+            exit 1
+          }
+          $name = ($line.Matches[0].Groups[1].Value -split '\+')[0]
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      # 解压后 exe 直接在压缩包根目录，和 macOS 包里带 .app 目录不同。
+      - name: Package app
+        shell: pwsh
+        run: |
+          $release = 'build/windows/x64/runner/Release'
+          $zip = "zconnect-${{ steps.version.outputs.name }}-windows-x64.zip"
+          Compress-Archive -Path (Join-Path $release '*') -DestinationPath $zip -Force
+
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: zconnect-${{ steps.version.outputs.name }}-windows-x64
+          path: zconnect-${{ steps.version.outputs.name }}-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
   release:
     name: Publish GitHub Release
-    # 等两个构建都过：Release 里要同时有 APK 和 macOS app。
-    needs: [build, macos]
+    # 等三个构建都过：Release 里要同时有 APK、macOS app 和 Windows 包。
+    needs: [build, macos, windows]
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
       (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')

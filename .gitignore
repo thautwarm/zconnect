@@ -85,3 +85,9 @@ app.*.map.json
 /macos/Frameworks/
 /macos/Vendor/
 /macos/.build/
+
+# Windows 打包暂存区：由 tools/fetch_miniaudio.ps1 / build_opus_windows.ps1 /
+# build_rust_windows.ps1 生成。头文件、静态库、DLL 和下载缓存都按需重建，
+# 不把二进制提交进来；windows/runner 下的源码当然不受影响。
+/windows/Vendor/
+/windows/.build/

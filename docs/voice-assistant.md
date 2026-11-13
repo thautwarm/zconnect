@@ -140,7 +140,7 @@ AEC 效果无法靠文档定论，只能真机测。先做一个页面：
 
 ## 8. 不做
 
-- Web / Windows / macOS / Linux（只构建 iOS + Android）
+- Web / Linux（Windows 和 macOS 已经补了原生语音引擎；iOS 仍只有 Dart 契约）
 - 音频落盘、编码格式选型（opus / aac / ogg）
 - 波形图、倍速播放、听筒/扬声器切换（那是语音消息的需求）
 - 后台播放音频**文件**（这里播的是实时 TTS 流）

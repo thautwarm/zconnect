@@ -6,11 +6,17 @@ project(runner LANGUAGES CXX)
 # work.
 #
 # Any new source files that you add to the application should be added here.
+set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/Vendor")
+
 add_executable(${BINARY_NAME} WIN32
   "flutter_window.cpp"
   "main.cpp"
   "utils.cpp"
   "win32_window.cpp"
+  "voice/audio_support.cpp"
+  "voice/ogg_opus_codec.cpp"
+  "voice/win_voice_engine.cpp"
+  "voice/voice_engine_plugin.cpp"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
   "Runner.rc"
   "runner.exe.manifest"
@@ -35,6 +41,39 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+target_include_directories(${BINARY_NAME} PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/voice"
+  "${VENDOR_DIR}"
+  "${VENDOR_DIR}/include")
+
+# 原生语音引擎依赖：miniaudio（header-only）、libopus/libogg、Voice Capture DSP。
+foreach(required
+    "${VENDOR_DIR}/miniaudio.h"
+    "${VENDOR_DIR}/include/opus.h"
+    "${VENDOR_DIR}/include/ogg/ogg.h"
+    "${VENDOR_DIR}/lib/opus.lib"
+    "${VENDOR_DIR}/lib/ogg.lib")
+  if(NOT EXISTS "${required}")
+    message(FATAL_ERROR
+      "缺少 Windows 原生依赖：${required}\n"
+      "先在仓库根目录运行：pwsh -File tools/build_windows.ps1")
+  endif()
+endforeach()
+
+target_link_libraries(${BINARY_NAME} PRIVATE
+  "${VENDOR_DIR}/lib/opus.lib"
+  "${VENDOR_DIR}/lib/ogg.lib"
+  "ole32.lib"
+  "uuid.lib"
+  "avrt.lib"
+  "ksuser.lib"
+  "wmcodecdspuuid.lib"
+  "dmoguids.lib"
+  "msdmo.lib"
+  "propsys.lib"
+  "strmiids.lib"
+  "shell32.lib"
+  "winmm.lib")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)

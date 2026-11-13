@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 — 2026-11-13
+
+### 新功能
+
+- **Windows 原生语音引擎**：Windows 10/11 x64 支持 WASAPI 全双工采集/播放、Ogg Opus 编解码和同一份 Rust VAD；回声消除使用 Windows 自带的 Voice Capture DSP（`CLSID_CWMAudioAEC`）filter mode，把麦克风和本机 TTS 播放 PCM 一起喂进去。DMO 不可用时自动退回半双工。
+- **Windows 构建与发布**：新增 `tools/build_windows.ps1`（miniaudio、libopus/libogg、Rust DLL、ONNX Runtime），CI 增加 `windows-latest` 构建并产出 `zconnect-<版本>-windows-x64.zip`。
+
+### 说明
+
+- Windows 包未做代码签名，首次启动可能被 SmartScreen 提示。
+- Windows N 版或精简镜像如果缺少 Media Feature Pack，Voice Capture DSP 可能不可用，此时语音链路以半双工运行。
+
 ## 1.2.3 — 2026-11-13
 
 ### 新功能

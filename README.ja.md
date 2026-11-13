@@ -33,7 +33,7 @@
 ## クイックスタート
 
 1. [pp1](https://github.com/thautwarm/pp1) でコントロールサーバーを起動します。
-2. アプリ（Android arm64 または macOS Apple Silicon）をインストールし、サーバー URL とトークンを入れてチャンネルを作成します。
+2. アプリ（Android arm64、macOS Apple Silicon、または Windows 10/11 x64）をインストールし、サーバー URL とトークンを入れてチャンネルを作成します。
 3. [声紋作成ページ](https://thautwarm.github.io/zconnect/enroll/)で声紋を作成して読み込み、電源ボタンで聞き取りを開始します。
 
 ## これは何か
@@ -72,13 +72,13 @@
 | UI / ビジネスロジック | Flutter（Dart 3.13） |
 | 端末側の区間検出 | Rust + Silero VAD、flutter_rust_bridge 2.13 |
 | 声紋ゲート | Rust + ECAPA コサイン類似度（int8 ONNX、23 MB）。声紋は `tools/voiceprint` の Web ページで生成 |
-| 音声エンジン | Android ネイティブ（Kotlin）：AudioRecord / AudioTrack / AEC；macOS ネイティブ（Swift）：AVAudioEngine + VPIO AEC |
+| 音声エンジン | Android ネイティブ（Kotlin）：AudioRecord / AudioTrack / AEC；macOS ネイティブ（Swift）：AVAudioEngine + VPIO AEC；Windows ネイティブ（C++）：WASAPI + Voice Capture DSP AEC |
 | 上りエンコード | Ogg Opus 16 kHz（MediaCodec + MediaMuxer） |
 | 下りデコード | 連続 Ogg Opus 24 kHz（独自の増分パーサー + MediaCodec）→ 16 kHz にリサンプル |
 | サーバーとの通信 | HTTP + MessagePack。上りはリクエスト／レスポンス、下りは前書き（テキスト）+ 連続音声ストリーム |
 | 履歴の保存 | NDJSON、1 MB ごとに分割、追記のみ |
 
-**Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**にもネイティブ音声エンジン（Swift + libopus/libogg + 同じ Rust VAD）があります。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
+**Android arm64 のみ**、minSdk 29。**macOS 14+（Apple Silicon）**と **Windows 10/11 x64** にもネイティブ音声エンジン（Swift/AVAudioEngine と C++/WASAPI、どちらも libopus/libogg と同じ Rust VAD）があります。Windows は OS 内蔵の Voice Capture DSP でエコーキャンセルし、使えない場合は半二重に自動フォールバックします。iOS の Dart 側の契約は用意済みですが、ネイティブ側は未実装です。
 
 ## ASR と TTS のカスタマイズ
 
@@ -106,6 +106,18 @@ tools/build_opus_macos.sh   # 静的 libopus + libogg → macos/Vendor
 tools/build_rust_macos.sh   # Rust VAD dylib + ONNX Runtime → macos/Frameworks
 flutter build macos --release
 ```
+
+Windows 10/11 x64。Visual Studio 2022 Build Tools（C++ ワークロード）、Rust、
+Flutter のプラグイン symlink 用の開発者モードが必要です。その後：
+
+```powershell
+pwsh -File tools/build_windows.ps1   # miniaudio + libopus/libogg + Rust DLL + ORT
+flutter build windows --release
+```
+
+出力は `build\windows\x64\runner\Release` で、リリースワークフローが
+`zconnect-<version>-windows-x64.zip` にまとめます。Windows 版は未署名なので、
+初回起動時に SmartScreen の警告が出ることがあります。
 
 ## リリース
 

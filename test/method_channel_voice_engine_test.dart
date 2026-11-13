@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pp_friend/src/voice/method_channel_voice_engine.dart';
+import 'package:pp_friend/src/voice/voice_engine.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -87,5 +88,22 @@ void main() {
 
     final engine = MethodChannelVoiceEngine();
     await engine.prepareNetworkAccess('http://192.168.0.102:18781');
+  });
+  test('原生报告 aecActive=false 时按半双工展示', () {
+    final format = AudioFormat.fromMap({
+      'sampleRate': 16000,
+      'channels': 1,
+      'framesPerChunk': 320,
+      'aecActive': false,
+    });
+    expect(format.aecActive, isFalse);
+    expect(format.toString(), contains('半双工'));
+
+    final legacy = AudioFormat.fromMap({
+      'sampleRate': 48000,
+      'channels': 1,
+      'framesPerChunk': 960,
+    });
+    expect(legacy.aecActive, isTrue);
   });
 }
