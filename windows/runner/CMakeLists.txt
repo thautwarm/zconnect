@@ -26,6 +26,11 @@ add_executable(${BINARY_NAME} WIN32
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
+# 源码里有中文错误提示，窄字符串要按 UTF-8 输出。默认执行字符集是系统代码页
+# （CI 的 en-US 是 1252），中文会被 C4566 报出来，在 /WX 下直接失败；本地
+# 中文系统即使能编过，传给 Dart 的也会是 GBK 字节。
+target_compile_options(${BINARY_NAME} PRIVATE /utf-8)
+
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
