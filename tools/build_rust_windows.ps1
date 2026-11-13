@@ -42,6 +42,23 @@ function Invoke-Native([string]$FilePath, [string[]]$Arguments) {
   }
 }
 
+# GitHub release 下载偶发断流，单次失败不代表文件不可用。
+function Invoke-Download([string]$Url, [string]$OutFile) {
+  $attempts = 4
+  for ($i = 1; $i -le $attempts; $i++) {
+    try {
+      Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing
+      return
+    }
+    catch {
+      if ($i -eq $attempts) { throw }
+      Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
+      Write-Host "    下载失败（第 $i 次）：$($_.Exception.Message)，重试" -ForegroundColor Yellow
+      Start-Sleep -Seconds (3 * $i)
+    }
+  }
+}
+
 function Get-File([string]$Url, [string]$Dest, [string]$WantSha) {
   if (Test-Path $Dest) {
     $got = Get-Sha256 $Dest
@@ -57,7 +74,7 @@ function Get-File([string]$Url, [string]$Dest, [string]$WantSha) {
   $tmp = "$Dest.tmp"
   try {
     Write-Host "    下载 $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $tmp -UseBasicParsing
+    Invoke-Download $Url $tmp
     $got = Get-Sha256 $tmp
     if ($got -ne $WantSha) {
       Fail "sha256 不匹配：$Url（拿到 $got，期望 $WantSha）"

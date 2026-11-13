@@ -32,6 +32,23 @@ function Get-Sha256([string]$Path) {
   (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+# raw.githubusercontent.com 偶发断流，单次失败不代表文件不可用。
+function Invoke-Download([string]$Url, [string]$OutFile) {
+  $attempts = 4
+  for ($i = 1; $i -le $attempts; $i++) {
+    try {
+      Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing
+      return
+    }
+    catch {
+      if ($i -eq $attempts) { throw }
+      Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
+      Write-Host "    下载失败（第 $i 次）：$($_.Exception.Message)，重试" -ForegroundColor Yellow
+      Start-Sleep -Seconds (3 * $i)
+    }
+  }
+}
+
 Write-Host "==> miniaudio $MiniAudioVersion"
 
 if (Test-Path $Dest) {
@@ -50,7 +67,7 @@ New-Item -ItemType Directory -Force -Path $VendorDir | Out-Null
 $Tmp = "$Dest.tmp"
 try {
   Write-Host "    下载 $MiniAudioUrl"
-  Invoke-WebRequest -Uri $MiniAudioUrl -OutFile $Tmp -UseBasicParsing
+  Invoke-Download $MiniAudioUrl $Tmp
 
   $got = Get-Sha256 $Tmp
   if ($got -ne $MiniAudioSha) {
