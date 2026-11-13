@@ -48,8 +48,12 @@ die() { echo "错误：$*" >&2; exit 1; }
 [[ -d "$NDK" ]] || die "找不到 NDK $NDK_VERSION：$NDK
 装了别的版本的话改这里的 NDK_VERSION（记得同步改 build.gradle.kts）。"
 
-TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/darwin-x86_64"
-[[ -d "$TOOLCHAIN" ]] || die "NDK 里没有 darwin-x86_64 工具链：$TOOLCHAIN"
+# NDK 的预编译工具链目录随宿主平台不同：macOS 是 darwin-x86_64（通用二进制），
+# Linux/WSL 是 linux-x86_64。写死其中一个会让另一个平台直接报错。
+NDK_HOST="linux-x86_64"
+[[ "$(uname -s)" == "Darwin" ]] && NDK_HOST="darwin-x86_64"
+TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/$NDK_HOST"
+[[ -d "$TOOLCHAIN" ]] || die "NDK 里没有 $NDK_HOST 工具链：$TOOLCHAIN"
 
 CLANG="$TOOLCHAIN/bin/${TARGET}${API_LEVEL}-clang"
 CLANGXX="$TOOLCHAIN/bin/${TARGET}${API_LEVEL}-clang++"
