@@ -123,7 +123,7 @@ builds are unsigned, so SmartScreen may warn on first launch.
 ## Releases
 
 GitHub Actions (`.github/workflows/build-release.yml`) runs `flutter analyze`
-and `flutter test`, then builds the arm64-v8a release APK on `ubuntu-latest`
+and `flutter test`, then builds the arm64-v8a release APK on `ubuntu-latest`,
 the Apple Silicon macOS app (plus its XCTests) on `macos-14`, and the
 Windows x64 app on `windows-latest`, on every push to `main`, every pull
 request, and manual dispatches. All are attached to the workflow run as

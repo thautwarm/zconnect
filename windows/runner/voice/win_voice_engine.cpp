@@ -549,6 +549,7 @@ struct WinVoiceEngine::Impl {
     mic_acc_.clear();
     ref_acc_.clear();
     aec_out_acc_.clear();
+    last_playback_at_ = Clock::time_point{};
     last_mic_db_ = -120.0;
     last_playback_db_ = -120.0;
     level_counter_ = 0;

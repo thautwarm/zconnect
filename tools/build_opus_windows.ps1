@@ -36,6 +36,37 @@ if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
   }
 }
 
+# 2026 年的 windows-latest 已经迁到 Visual Studio 2026，CMake 4.2+ 的生成器
+# 叫 "Visual Studio 18 2026"；本地 VS 2022 仍是 "Visual Studio 17 2022"。
+# 用 vswhere 看实际装了哪个，再确认 CMake 认识这个生成器。
+function Resolve-VSGenerator {
+  $help = (& cmake --help 2>&1) -join "`n"
+  $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+  $vs2026 = $null
+  $vs2022 = $null
+  if (Test-Path $vswhere) {
+    $vs2026 = & $vswhere -latest -products '*' -version '[18.0,19.0)' `
+      -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    $vs2022 = & $vswhere -latest -products '*' -version '[17.0,18.0)' `
+      -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+  }
+  if ($vs2026 -and $help -match 'Visual Studio 18 2026') {
+    return 'Visual Studio 18 2026'
+  }
+  if ($vs2022 -and $help -match 'Visual Studio 17 2022') {
+    return 'Visual Studio 17 2022'
+  }
+  if ($help -match 'Visual Studio 18 2026') { return 'Visual Studio 18 2026' }
+  if ($help -match 'Visual Studio 17 2022') { return 'Visual Studio 17 2022' }
+  return $null
+}
+
+$CMakeGenerator = Resolve-VSGenerator
+if (-not $CMakeGenerator) {
+  Fail '找不到可用的 Visual Studio C++ 生成器（需要 VS 2022 或 VS 2026 + CMake）'
+}
+Write-Host "==> CMake generator: $CMakeGenerator"
+
 $VendorDir = Join-Path $RepoRoot 'windows/Vendor'
 $IncludeDir = Join-Path $VendorDir 'include'
 $LibDir = Join-Path $VendorDir 'lib'
@@ -109,7 +140,7 @@ function Invoke-CMakeBuild([string]$SourceDir, [string]$BuildDir) {
   Invoke-Native 'cmake' @(
     '-S', $SourceDir,
     '-B', $BuildDir,
-    '-G', 'Visual Studio 17 2022',
+    '-G', $CMakeGenerator,
     '-A', 'x64',
     '-DBUILD_SHARED_LIBS=OFF',
     '-DBUILD_TESTING=OFF',

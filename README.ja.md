@@ -124,8 +124,9 @@ flutter build windows --release
 GitHub Actions（`.github/workflows/build-release.yml`）は、`main` への push、
 Pull Request、手動実行のたびに `flutter analyze` と `flutter test` を回し、
 `ubuntu-latest` で arm64-v8a の release APK を、`macos-14` で Apple Silicon の
-macOS アプリ（XCTest 付き）をビルドします。どちらもワークフローの成果物として
-添付されますが、GitHub Release に入るのは APK だけです。
+macOS アプリ（XCTest 付き）を、`windows-latest` で Windows x64 版をビルドします。
+すべてワークフローの成果物として添付され、APK、macOS アプリ、Windows zip が
+GitHub Release に入ります。
 
 GitHub Release を公開するには、`pubspec.yaml` のバージョンに合わせたタグを
 push します：
