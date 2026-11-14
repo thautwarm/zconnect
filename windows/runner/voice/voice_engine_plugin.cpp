@@ -9,6 +9,7 @@
 #include <shellapi.h>
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -36,6 +37,17 @@ constexpr char kMethodChannelName[] = "pp_friend/voice_engine";
 constexpr char kMicChannelName[] = "pp_friend/voice_engine/mic";
 constexpr char kLevelsChannelName[] = "pp_friend/voice_engine/levels";
 constexpr char kEventsChannelName[] = "pp_friend/voice_engine/events";
+
+// 音频线程把事件送回平台线程用的隐藏窗口。
+//
+// 不用 FlutterEngine::PostPlatformThreadTask：当前引擎实现里
+// FlutterDesktopEnginePostPlatformThreadTask 先用临时 Context 构造
+// shared_ptr，临时对象析构时就把 on_cancel 跑了，回调在真正执行前已经被
+// delete；第一次收到 mic 帧时就是 bad_function_call / AV（flutter/flutter#193411，
+// 修复 PR #193412）。自己开一个 message-only 窗口，PostMessage 进来后
+// 在平台线程的 WndProc 里执行，生命周期完全由这里掌握。
+constexpr UINT kRunTasksMessage = WM_APP + 0x51;
+constexpr wchar_t kTaskWindowClass[] = L"PPFriendVoiceTaskWindow";
 
 const EncodableMap* ArgumentsOf(const MethodCall<EncodableValue>& call) {
   return std::get_if<EncodableMap>(call.arguments());
@@ -98,6 +110,8 @@ class VoiceEnginePluginImpl {
         events_channel_(std::make_unique<flutter::EventChannel<EncodableValue>>(
             engine->messenger(), kEventsChannelName,
             &StandardMethodCodec::GetInstance())) {
+    CreateTaskWindow();
+
     method_channel_->SetMethodCallHandler(
         [this](const MethodCall<EncodableValue>& call,
                std::unique_ptr<MethodResult<EncodableValue>> result) {
@@ -119,10 +133,68 @@ class VoiceEnginePluginImpl {
   ~VoiceEnginePluginImpl() {
     WinVoiceEngine::Instance().ClearCallbacks();
     WinVoiceEngine::Instance().Stop();
+    if (task_window_ != nullptr) {
+      DestroyWindow(task_window_);
+      task_window_ = nullptr;
+    }
     DetachSinks();
   }
 
  private:
+  static LRESULT CALLBACK TaskWndProc(HWND hwnd, UINT message, WPARAM wparam,
+                                     LPARAM lparam) {
+    if (message == kRunTasksMessage) {
+      auto* self = reinterpret_cast<VoiceEnginePluginImpl*>(
+          GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+      if (self != nullptr) self->DrainTasks();
+      return 0;
+    }
+    return DefWindowProcW(hwnd, message, wparam, lparam);
+  }
+
+  void CreateTaskWindow() {
+    WNDCLASSW window_class{};
+    window_class.lpfnWndProc = &VoiceEnginePluginImpl::TaskWndProc;
+    window_class.hInstance = GetModuleHandleW(nullptr);
+    window_class.lpszClassName = kTaskWindowClass;
+    RegisterClassW(&window_class);
+    task_window_ = CreateWindowExW(0, kTaskWindowClass, L"", 0, 0, 0, 0, 0,
+                                   HWND_MESSAGE, nullptr, window_class.hInstance,
+                                   this);
+    if (task_window_ != nullptr) {
+      SetWindowLongPtrW(task_window_, GWLP_USERDATA,
+                        reinterpret_cast<LONG_PTR>(this));
+    }
+  }
+
+  /// 平台线程执行排队的回调。也允许在平台线程直接调用（会就地执行）。
+  void DrainTasks() {
+    std::vector<std::function<void()>> tasks;
+    {
+      std::lock_guard<std::mutex> lock(task_mutex_);
+      tasks.swap(tasks_);
+    }
+    for (auto& task : tasks) {
+      if (!task) continue;
+      try {
+        task();
+      } catch (...) {
+        // 回调里不该抛；真抛了也不能从 WndProc 里穿出去。
+      }
+    }
+  }
+
+  void PostTask(std::function<void()> task) {
+    if (!task) return;
+    {
+      std::lock_guard<std::mutex> lock(task_mutex_);
+      tasks_.push_back(std::move(task));
+    }
+    if (task_window_ != nullptr) {
+      PostMessageW(task_window_, kRunTasksMessage, 0, 0);
+    }
+  }
+
   void WireEvents() {
     mic_channel_->SetStreamHandler(
         std::make_unique<StreamHandlerFunctions<EncodableValue>>(
@@ -220,12 +292,11 @@ class VoiceEnginePluginImpl {
 
   template <typename T>
   void SendToPlatform(std::shared_ptr<SinkHolder> holder, T value) {
-    if (!holder || !holder->active || engine_ == nullptr) return;
-    engine_->PostPlatformThreadTask(
-        [holder = std::move(holder), value = std::move(value)]() mutable {
-          if (!holder->active || !holder->sink) return;
-          holder->sink->Success(value);
-        });
+    if (!holder || !holder->active) return;
+    PostTask([holder = std::move(holder), value = std::move(value)]() mutable {
+      if (!holder->active || !holder->sink) return;
+      holder->sink->Success(value);
+    });
   }
 
   void PostMic(const uint8_t* pcm, size_t size) {
@@ -476,6 +547,10 @@ class VoiceEnginePluginImpl {
   std::shared_ptr<SinkHolder> mic_sink_;
   std::shared_ptr<SinkHolder> levels_sink_;
   std::shared_ptr<SinkHolder> events_sink_;
+
+  HWND task_window_ = nullptr;
+  std::mutex task_mutex_;
+  std::vector<std::function<void()>> tasks_;
 };
 
 void VoiceEnginePlugin::Register(flutter::FlutterEngine* engine) {

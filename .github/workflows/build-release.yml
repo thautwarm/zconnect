@@ -310,7 +310,7 @@ jobs:
         run: |
           $release = 'build/windows/x64/runner/Release'
           $required = @(
-            'pp_friend.exe',
+            'zconnect.exe',
             'rust_lib_pp_friend.dll',
             'onnxruntime.dll',
             'data/flutter_assets'

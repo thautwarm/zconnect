@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 — 2026-11-15
+
+### 修复
+
+- **Windows 启动语音即崩溃**：Flutter Windows 引擎的 `PostPlatformThreadTask` 在当前版本里会在任务真正执行前就释放回调（flutter/flutter#193411，修复见 #193412），第一次收到麦克风帧就触发 `bad_function_call`。Windows 插件改为自建 message-only 窗口，用 `PostMessage` 把音频线程的事件送回平台线程，不再依赖这条有缺陷的路径。
+- **Windows 应用名**：可执行文件从 `pp_friend.exe` 改为 `zconnect.exe`，和 Z Connect 的显示名一致。
+
 ## 1.3.0 — 2026-11-13
 
 ### 新功能

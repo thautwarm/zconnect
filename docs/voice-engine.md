@@ -183,7 +183,7 @@ flutter build windows --release
 ```
 
 产物目录 `build\windows\x64\runner\Release` 需要包含
-`pp_friend.exe`、`rust_lib_pp_friend.dll`、`onnxruntime.dll` 和
+`zconnect.exe`、`rust_lib_pp_friend.dll`、`onnxruntime.dll` 和
 `data/flutter_assets`。CI 的 `windows` job 会验证这些文件并打 zip。
 
 ## iOS 以后要补什么

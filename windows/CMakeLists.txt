@@ -4,7 +4,7 @@ project(pp_friend LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "pp_friend")
+set(BINARY_NAME "zconnect")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
